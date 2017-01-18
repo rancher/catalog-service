@@ -91,7 +91,7 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 	}
 
 	for _, template := range templates {
-		fmt.Println("#", template)
+		fmt.Println("#", template, template.Prefix)
 	}
 
 	for _, version := range versions {
@@ -185,13 +185,33 @@ type TemplateConfig struct {
 	Labels         map[string]string `yaml:"version"`
 }
 
+func getTemplatesPrefix(filename string) (string, bool) {
+	dir, _ := path.Split(filename)
+	dirSplit := strings.Split(dir, "/")
+	if len(dirSplit) < 2 {
+		return "", false
+	}
+	firstDir := dirSplit[0]
+
+	if firstDir == "templates" {
+		return "", true
+	}
+	dirSplit = strings.Split(firstDir, "-")
+	if len(dirSplit) != 2 {
+		return "", false
+	}
+	return dirSplit[0], true
+}
+
 func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, error) {
 	templates := []model.Template{}
 	versions := []model.Version{}
 	return templates, versions, files.ForEach(func(f *object.File) error {
-		if !strings.HasPrefix(f.Name, "templates") {
+		templatesPrefix, parsedCorrectly := getTemplatesPrefix(f.Name)
+		if !parsedCorrectly {
 			return nil
 		}
+
 		switch {
 		case strings.HasSuffix(f.Name, "config.yml"):
 			_, templateFolderName, parsedCorrectly := parse.ConfigPath(f.Name)
@@ -207,6 +227,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
 				return err
 			}
+			template.Prefix = templatesPrefix
 			template.FolderName = templateFolderName
 			templates = append(templates, template)
 		case strings.HasSuffix(f.Name, "docker-compose.yml"):

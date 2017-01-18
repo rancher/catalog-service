@@ -1,9 +1,6 @@
 package parse
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/docker/libcompose/config"
 	"github.com/docker/libcompose/utils"
 	"github.com/rancher/catalog-service/model"
@@ -41,45 +38,4 @@ func CatalogInfoFromRancherCompose(contents []byte) (model.Version, error) {
 	}
 
 	return model.Version{}, nil
-}
-
-/*func TemplateURLPath(path string) (string, int, string, error) {
-	split := strings.Split(path, "/")
-	if len(split) < 3 {
-		return "", "", 0, false
-	}
-
-	catalog := split[0]
-	template := split[1]
-	revision, err := strconv.Atoi(split[2])
-	if err != nil {
-		return "", "", 0, false
-	}
-
-	return catalog, template, revision, true
-
-}*/
-
-func ConfigPath(path string) (string, string, bool) {
-	split := strings.Split(path, "/")
-	if len(split) < 2 {
-		return "", "", false
-	}
-	return split[0], split[1], true
-}
-
-func DiskPath(path string) (string, string, int, bool) {
-	split := strings.Split(path, "/")
-	if len(split) < 3 {
-		return "", "", 0, false
-	}
-
-	catalog := split[0]
-	template := split[1]
-	revision, err := strconv.Atoi(split[2])
-	if err != nil {
-		return "", "", 0, false
-	}
-
-	return catalog, template, revision, true
 }

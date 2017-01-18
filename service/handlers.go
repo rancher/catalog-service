@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/rancher/catalog-service/model"
+	"github.com/rancher/catalog-service/parse"
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
 )
@@ -161,12 +161,9 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	split := strings.Split(catalogTemplateVersion, ":")
-	switch len(split) {
-	case 2:
+	catalogName, templateName, templatePrefix, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
+	if revisionNumber == -1 {
 		// Return template
-		catalogName := split[0]
-		templateName := split[1]
 		var templateModel model.TemplateModel
 		var versionModels []model.VersionModel
 		db.Where(&model.VersionModel{
@@ -181,6 +178,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Catalog:       catalogName,
 				FolderName:    templateName,
 				EnvironmentId: environmentId,
+				Prefix:        templatePrefix,
 			},
 		}).First(&templateModel)
 
@@ -190,11 +188,8 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		apiContext.Write(templateResource(apiContext, templateModel.Template, versions))
-	case 3:
+	} else {
 		// Return template version
-		catalogName := split[0]
-		templateName := split[1]
-		revisionNumber, _ := strconv.Atoi(split[2])
 		var template model.TemplateModel
 		var version model.VersionModel
 		db.Where(&model.TemplateModel{
@@ -202,6 +197,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Catalog:       catalogName,
 				FolderName:    templateName,
 				EnvironmentId: environmentId,
+				Prefix:        templatePrefix,
 			},
 		}).First(&template)
 		db.Where(&model.VersionModel{
@@ -218,8 +214,6 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		apiContext.Write(versionResource)
-	default:
-		ReturnHTTPError(w, r, http.StatusBadRequest, fmt.Errorf("Variable %s is malformed", catalogTemplateVersion))
 	}
 }
 

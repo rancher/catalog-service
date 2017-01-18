@@ -29,6 +29,7 @@ type Template struct {
 	FolderName    string `json:"revision"`
 	Catalog       string `json:"catalog"`
 	EnvironmentId string `json:"environmentId"`
+	Prefix        string `json:"prefix"`
 }
 
 type TemplateModel struct {

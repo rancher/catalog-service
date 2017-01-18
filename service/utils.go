@@ -26,7 +26,7 @@ func versionId(template model.Template, version model.Version) string {
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
 	}
-	return fmt.Sprintf("%s:%s:%d", template.Catalog, template.FolderName, version.Revision)
+	return fmt.Sprintf("%s:%s*%s:%d", template.Catalog, template.Prefix, template.FolderName, version.Revision)
 }
 
 func templateId(template model.Template) string {
@@ -34,7 +34,7 @@ func templateId(template model.Template) string {
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
 	}
-	return fmt.Sprintf("%s:%s", template.Catalog, template.FolderName)
+	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Prefix, template.FolderName)
 }
 
 func addTemplateFieldsToVersion(version *model.Version, template *model.Template) *model.Version {
