@@ -9,3 +9,8 @@ PACKAGES=". $(find -name '*.go' | xargs -I{} dirname {} |  cut -f2 -d/ | sort -u
 
 [ "${ARCH}" == "amd64" ] && RACE=-race
 go test ${RACE} -cover -tags=test ${PACKAGES}
+
+./bin/catalog-service -config scripts/test-repo.json -port 8088 &
+trap "kill $!" exit
+cd integration
+tox -e flake8,py27
