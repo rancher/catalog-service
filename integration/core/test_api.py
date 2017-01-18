@@ -7,11 +7,16 @@ from wait_for import wait_for
 @pytest.fixture
 def client():
     url = 'http://localhost:8088/v1-catalog/schemas'
-    templates = cattle.from_env(url=url).list_template()
+    catalogs = cattle.from_env(url=url).list_catalog()
     wait_for(
-        lambda: len(templates) > 0
+        lambda: len(catalogs) > 0
     )
     return cattle.from_env(url=url)
+
+
+def test_catalog_list(client):
+    catalogs = client.list_catalog()
+    assert len(catalogs) > 0
 
 
 def test_template_list(client):

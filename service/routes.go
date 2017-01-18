@@ -86,8 +86,7 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 
 	schemas.AddType("schema", client.Schema{})
 
-	catalog := schemas.AddType("catalog", model.CatalogResource{})
-	catalog.CollectionMethods = []string{}
+	schemas.AddType("catalog", model.CatalogResource{})
 
 	template := schemas.AddType("template", model.TemplateResource{})
 	template.CollectionActions = map[string]client.Action{
@@ -98,7 +97,6 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	templateVersion.CollectionMethods = []string{}
 
 	err := schemas.AddType("error", model.CatalogError{})
-
 	err.CollectionMethods = []string{}
 
 	// API framework routes
