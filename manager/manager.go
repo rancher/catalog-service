@@ -98,8 +98,6 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 		fmt.Println("@", version.Template, version.Revision)
 	}
 
-	db.Begin()
-
 	// TODO: do not need to always create catalog
 	if err = db.Create(&model.CatalogModel{
 		Catalog: model.Catalog{
@@ -109,7 +107,6 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 			EnvironmentId: config.EnvironmentId,
 		},
 	}).Error; err != nil {
-		db.Rollback()
 		return err
 	}
 
@@ -119,25 +116,19 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 		if err = db.Create(&model.TemplateModel{
 			Template: template,
 		}).Error; err != nil {
-			db.Rollback()
 			return err
 		}
 	}
 
-	// begin
 	for _, version := range versions {
 		version.Catalog = name
 		version.EnvironmentId = config.EnvironmentId
 		if err = db.Create(&model.VersionModel{
 			Version: version,
 		}).Error; err != nil {
-			db.Rollback()
 			return err
 		}
 	}
-	// end
-
-	db.Commit()
 
 	return nil
 }
