@@ -1,10 +1,12 @@
 {
-  "library": {
-    "url": "https://github.com/rancher/rancher-catalog",
-    "environmentId": "e1"
-  },
-  "library2": {
-    "url": "https://github.com/rancher/rancher-catalog",
-    "environmentId": "e2"
+  "catalogs": {
+    "library": {
+      "url": "https://github.com/rancher/rancher-catalog",
+      "environmentId": "e1"
+    },
+    "library2": {
+      "url": "https://github.com/rancher/rancher-catalog",
+      "environmentId": "e2"
+    }
   }
 }

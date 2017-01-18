@@ -26,13 +26,8 @@ var (
 func main() {
 	flag.Parse()
 
-	bytes, err := ioutil.ReadFile(*configFile)
+	config, err := readConfig(*configFile)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	var config map[string]manager.CatalogConfig
-	if err = json.Unmarshal(bytes, &config); err != nil {
 		log.Fatal(err)
 	}
 
@@ -65,7 +60,9 @@ func readConfig(configFile string) (map[string]manager.CatalogConfig, error) {
 		return nil, err
 	}
 
-	var config map[string]manager.CatalogConfig
-	err = json.Unmarshal(configContents, &config)
-	return config, err
+	var config map[string]map[string]manager.CatalogConfig
+	if err = json.Unmarshal(configContents, &config); err != nil {
+		return nil, err
+	}
+	return config["catalogs"], nil
 }

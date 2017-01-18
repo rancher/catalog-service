@@ -1,6 +1,8 @@
 {
-  "library": {
-    "url": "https://github.com/joshwget/test-catalog",
-    "environmentId": "e1"
+  "catalogs": {
+    "library": {
+      "url": "https://github.com/joshwget/test-catalog",
+      "environmentId": "e1"
+    }
   }
 }
