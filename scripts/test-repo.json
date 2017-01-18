@@ -1,7 +1,11 @@
 {
   "catalogs": {
-    "library": {
+    "test": {
       "url": "https://github.com/joshwget/test-catalog",
+      "environmentId": "e1"
+    },
+    "library": {
+      "url": "https://github.com/rancher/rancher-catalog",
       "environmentId": "e1"
     }
   }

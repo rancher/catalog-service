@@ -16,7 +16,9 @@ def client():
 
 def test_catalog_list(client):
     catalogs = client.list_catalog()
-    assert len(catalogs) > 0
+    assert len(catalogs) == 2
+    assert catalogs[0].name == 'test'
+    assert catalogs[1].name == 'library'
 
 
 def test_template_list(client):
@@ -25,7 +27,7 @@ def test_template_list(client):
 
 
 def test_template_basics(client):
-    url = 'http://localhost:8088/v1-catalog/templates/library:k8s:0'
+    url = 'http://localhost:8088/v1-catalog/templates/test:k8s:0'
     response = requests.get(url)
     assert response.status_code == 200
     resp = response.json()
@@ -33,7 +35,7 @@ def test_template_basics(client):
 
 
 def test_template_bindings(client):
-    url = 'http://localhost:8088/v1-catalog/templates/library:k8s:0'
+    url = 'http://localhost:8088/v1-catalog/templates/test:k8s:0'
     response = requests.get(url)
     assert response.status_code == 200
     resp = response.json()
@@ -43,7 +45,7 @@ def test_template_bindings(client):
 
 def test_v2_syntax(client):
     for revision in [0, 1, 2, 3]:
-        url = 'http://localhost:8088/v1-catalog/templates/library:v2:' + \
+        url = 'http://localhost:8088/v1-catalog/templates/test:v2:' + \
                 str(revision)
         response = requests.get(url)
         assert response.status_code == 200
