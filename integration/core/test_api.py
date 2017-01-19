@@ -34,6 +34,13 @@ def test_template_basics(client):
     assert resp['template'] == 'k8s'
 
 
+def test_template_icon(client):
+    url = 'http://localhost:8088/v1-catalog/templates/test:nfs-server?image'
+    response = requests.get(url)
+    assert response.status_code == 200
+    assert len(response.content) == 1139
+
+
 def test_template_bindings(client):
     url = 'http://localhost:8088/v1-catalog/templates/test:k8s:0'
     response = requests.get(url)
