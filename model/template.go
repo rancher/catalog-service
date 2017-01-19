@@ -30,6 +30,7 @@ type Template struct {
 	Catalog       string `json:"catalog"`
 	EnvironmentId string `json:"environmentId"`
 	Prefix        string `json:"prefix"`
+	Icon          []byte `json:"icon"`
 }
 
 type TemplateModel struct {

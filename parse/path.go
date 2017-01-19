@@ -6,12 +6,12 @@ import (
 )
 
 func TemplateURLPath(path string) (string, string, string, int, bool) {
-	pathSplit := strings.Split(path, "/")
+	pathSplit := strings.Split(path, ":")
 	switch len(pathSplit) {
 	case 2:
 		catalog := pathSplit[0]
 		template := pathSplit[1]
-		templateSplit := strings.Split(template, "-")
+		templateSplit := strings.Split(template, "*")
 		templatePrefix := ""
 		switch len(templateSplit) {
 		case 1:
@@ -30,7 +30,7 @@ func TemplateURLPath(path string) (string, string, string, int, bool) {
 		if err != nil {
 			return "", "", "", 0, false
 		}
-		templateSplit := strings.Split(template, "-")
+		templateSplit := strings.Split(template, "*")
 		templatePrefix := ""
 		switch len(templateSplit) {
 		case 1:

@@ -205,6 +205,7 @@ func getTemplatesPrefix(filename string) (string, bool) {
 
 func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, error) {
 	templates := []model.Template{}
+	templateIndex := map[string]*model.Template{}
 	versions := []model.Version{}
 	return templates, versions, files.ForEach(func(f *object.File) error {
 		templatesPrefix, parsedCorrectly := getTemplatesPrefix(f.Name)
@@ -212,8 +213,10 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			return nil
 		}
 
+		dir, filename := path.Split(f.Name)
+
 		switch {
-		case strings.HasSuffix(f.Name, "config.yml"):
+		case filename == "config.yml":
 			_, templateFolderName, parsedCorrectly := parse.ConfigPath(f.Name)
 			if !parsedCorrectly {
 				return nil
@@ -229,8 +232,25 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			}
 			template.Prefix = templatesPrefix
 			template.FolderName = templateFolderName
+			if existingTemplate, ok := templateIndex[dir]; ok {
+				template.Icon = existingTemplate.Icon
+			}
+			templateIndex[dir] = &template
 			templates = append(templates, template)
-		case strings.HasSuffix(f.Name, "docker-compose.yml"):
+		case strings.HasPrefix(filename, "catalogIcon"):
+			_, _, parsedCorrectly := parse.ConfigPath(f.Name)
+			if !parsedCorrectly {
+				return nil
+			}
+			contents, err := f.Contents()
+			if err != nil {
+				return err
+			}
+			if _, ok := templateIndex[dir]; !ok {
+				templateIndex[dir] = &model.Template{}
+			}
+			templateIndex[dir].Icon = []byte(contents)
+		case filename == "docker-compose.yml":
 			// Save docker-compose.yml to version
 			_, templateFolderName, revision, parsedCorrectly := parse.DiskPath(f.Name)
 			if !parsedCorrectly {
@@ -255,7 +275,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 					DockerCompose: contents,
 				})
 			}
-		case strings.HasSuffix(f.Name, "rancher-compose.yml"):
+		case filename == "rancher-compose.yml":
 			_, templateFolderName, revision, parsedCorrectly := parse.DiskPath(f.Name)
 			if !parsedCorrectly {
 				return nil
@@ -287,26 +307,6 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 					RancherCompose: contents,
 				})
 			}
-			// Save rancher-compose.yml to version and parse catalog key
-			/*_, templateFolderName, revision, parsedCorrectly := parse.DiskPath(f.Name)
-			if !parsedCorrectly {
-				return nil
-			}
-			contents, err := f.Contents()
-			if err != nil {
-				return err
-			}
-			template, err := parse.TemplateFromRancherCompose([]byte(contents))
-			if err != nil {
-				return err
-			}
-			_, templateFolderName, revision, parsedCorrectly := parse.DiskPath(f.Name)
-			if parsedCorrectly {
-				template.Revision = revision
-				template.FolderName = templateFolderName
-				templates = append(templates, template)
-			}*/
-
 		}
 
 		return nil

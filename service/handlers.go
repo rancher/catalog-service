@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/rancher/catalog-service/model"
@@ -182,12 +183,17 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 			},
 		}).First(&templateModel)
 
-		var versions []model.Version
-		for _, versionModel := range versionModels {
-			versions = append(versions, versionModel.Version)
+		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
+			w.Write(templateModel.Icon)
+		} else if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
+			w.Write([]byte("TODO"))
+		} else {
+			var versions []model.Version
+			for _, versionModel := range versionModels {
+				versions = append(versions, versionModel.Version)
+			}
+			apiContext.Write(templateResource(apiContext, templateModel.Template, versions))
 		}
-
-		apiContext.Write(templateResource(apiContext, templateModel.Template, versions))
 	} else {
 		// Return template version
 		var template model.TemplateModel

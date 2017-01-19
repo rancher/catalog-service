@@ -92,6 +92,7 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	template.CollectionActions = map[string]client.Action{
 		"refresh": {},
 	}
+	delete(template.ResourceFields, "icon")
 
 	templateVersion := schemas.AddType("templateVersion", model.TemplateVersionResource{})
 	templateVersion.CollectionMethods = []string{}
