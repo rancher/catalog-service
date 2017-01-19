@@ -6,7 +6,7 @@ import (
 )
 
 type Version struct {
-	Catalog        string `json:"catalog"`
+	Catalog        string `json:"catalogId"`
 	EnvironmentId  string `json:"environmentId"`
 	Template       string `json:"template"`
 	Revision       int    `json:"revision"`

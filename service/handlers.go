@@ -162,7 +162,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	catalogName, templateName, templatePrefix, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
+	catalogName, templateName, templateBase, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
 	if revisionNumber == -1 {
 		// Return template
 		var templateModel model.TemplateModel
@@ -179,7 +179,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Catalog:       catalogName,
 				FolderName:    templateName,
 				EnvironmentId: environmentId,
-				Prefix:        templatePrefix,
+				Base:          templateBase,
 			},
 		}).First(&templateModel)
 
@@ -203,7 +203,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Catalog:       catalogName,
 				FolderName:    templateName,
 				EnvironmentId: environmentId,
-				Prefix:        templatePrefix,
+				Base:          templateBase,
 			},
 		}).First(&template)
 		db.Where(&model.VersionModel{
@@ -214,7 +214,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Revision:      revisionNumber,
 			},
 		}).First(&version)
-		versionResource, err := versionResource(template.Template, version.Version)
+		versionResource, err := versionResource(apiContext, template.Template, version.Version)
 		if err != nil {
 			ReturnHTTPError(w, r, http.StatusBadRequest, err)
 			return

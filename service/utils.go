@@ -26,7 +26,7 @@ func versionId(template model.Template, version model.Version) string {
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
 	}
-	return fmt.Sprintf("%s:%s*%s:%d", template.Catalog, template.Prefix, template.FolderName, version.Revision)
+	return fmt.Sprintf("%s:%s*%s:%d", template.Catalog, template.Base, template.FolderName, version.Revision)
 }
 
 func templateId(template model.Template) string {
@@ -34,7 +34,7 @@ func templateId(template model.Template) string {
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
 	}
-	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Prefix, template.FolderName)
+	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Base, template.FolderName)
 }
 
 func addTemplateFieldsToVersion(version *model.Version, template *model.Template) *model.Version {
@@ -49,33 +49,57 @@ func addTemplateFieldsToVersion(version *model.Version, template *model.Template
 }
 
 func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version) *model.TemplateResource {
+	templateId := templateId(template)
+
 	versionLinks := map[string]string{}
 	for _, version := range versions {
 		route := versionId(template, version)
 		link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 		versionLinks[version.Version] = URLEncoded(link)
 	}
+
+	links := map[string]string{}
+	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
+
 	return &model.TemplateResource{
 		Resource: client.Resource{
-			Id:   templateId(template),
-			Type: "template",
+			Id:    templateId,
+			Type:  "template",
+			Links: links,
 		},
 		Template:     template,
 		VersionLinks: versionLinks,
 	}
 }
 
-func versionResource(template model.Template, version model.Version) (*model.TemplateVersionResource, error) {
+func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version) (*model.TemplateVersionResource, error) {
+	templateId := templateId(template)
+	versionId := versionId(template, version)
+
 	bindings, err := parse.Bindings([]byte(version.DockerCompose))
 	if err != nil {
 		return nil, err
 	}
+
+	files := map[string]string{}
+	if version.DockerCompose != "" {
+		files["docker-compose.yml"] = version.DockerCompose
+	}
+	if version.RancherCompose != "" {
+		files["rancher-compose.yml"] = version.RancherCompose
+	}
+
+	links := map[string]string{}
+	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
+
 	return &model.TemplateVersionResource{
 		Resource: client.Resource{
-			Id:   versionId(template, version),
-			Type: "templateVersion",
+			Id:    versionId,
+			Type:  "templateVersion",
+			Links: links,
 		},
 		Version:  *addTemplateFieldsToVersion(&version, &template),
 		Bindings: bindings,
+		Files:    files,
 	}, nil
 }

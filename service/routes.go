@@ -96,6 +96,9 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 
 	templateVersion := schemas.AddType("templateVersion", model.TemplateVersionResource{})
 	templateVersion.CollectionMethods = []string{}
+	// TODO: move to generic files map
+	delete(template.ResourceFields, "dockerCompose")
+	delete(template.ResourceFields, "rancherCompose")
 
 	err := schemas.AddType("error", model.CatalogError{})
 	err.CollectionMethods = []string{}

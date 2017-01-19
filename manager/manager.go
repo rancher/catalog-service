@@ -91,7 +91,7 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 	}
 
 	for _, template := range templates {
-		fmt.Println("#", template, template.Prefix)
+		fmt.Println("#", template, template.Base)
 	}
 
 	for _, version := range versions {
@@ -185,7 +185,7 @@ type TemplateConfig struct {
 	Labels         map[string]string `yaml:"version"`
 }
 
-func getTemplatesPrefix(filename string) (string, bool) {
+func getTemplatesBase(filename string) (string, bool) {
 	dir, _ := path.Split(filename)
 	dirSplit := strings.Split(dir, "/")
 	if len(dirSplit) < 2 {
@@ -208,7 +208,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 	templateIndex := map[string]*model.Template{}
 	versions := []model.Version{}
 	return templates, versions, files.ForEach(func(f *object.File) error {
-		templatesPrefix, parsedCorrectly := getTemplatesPrefix(f.Name)
+		templatesBase, parsedCorrectly := getTemplatesBase(f.Name)
 		if !parsedCorrectly {
 			return nil
 		}
@@ -230,7 +230,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
 				return err
 			}
-			template.Prefix = templatesPrefix
+			template.Base = templatesBase
 			template.FolderName = templateFolderName
 			if existingTemplate, ok := templateIndex[dir]; ok {
 				template.Icon = existingTemplate.Icon

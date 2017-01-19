@@ -12,17 +12,17 @@ func TemplateURLPath(path string) (string, string, string, int, bool) {
 		catalog := pathSplit[0]
 		template := pathSplit[1]
 		templateSplit := strings.Split(template, "*")
-		templatePrefix := ""
+		templateBase := ""
 		switch len(templateSplit) {
 		case 1:
 			template = templateSplit[0]
 		case 2:
-			templatePrefix = templateSplit[0]
+			templateBase = templateSplit[0]
 			template = templateSplit[1]
 		default:
 			return "", "", "", 0, false
 		}
-		return catalog, template, templatePrefix, -1, true
+		return catalog, template, templateBase, -1, true
 	case 3:
 		catalog := pathSplit[0]
 		template := pathSplit[1]
@@ -31,17 +31,17 @@ func TemplateURLPath(path string) (string, string, string, int, bool) {
 			return "", "", "", 0, false
 		}
 		templateSplit := strings.Split(template, "*")
-		templatePrefix := ""
+		templateBase := ""
 		switch len(templateSplit) {
 		case 1:
 			template = templateSplit[0]
 		case 2:
-			templatePrefix = templateSplit[0]
+			templateBase = templateSplit[0]
 			template = templateSplit[1]
 		default:
 			return "", "", "", 0, false
 		}
-		return catalog, template, templatePrefix, revision, true
+		return catalog, template, templateBase, revision, true
 	default:
 		return "", "", "", 0, false
 	}
