@@ -19,6 +19,7 @@ const (
 )
 
 func getEnvironmentId(r *http.Request) (string, error) {
+	fmt.Println("Environment header: ", r.Header.Get(environmentIdHeader))
 	// TODO
 	return "e1", nil
 	environment := r.Header.Get(environmentIdHeader)

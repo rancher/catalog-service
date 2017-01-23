@@ -12,9 +12,7 @@ type Template struct {
 	Category       string `json:"category"`
 	IsSystem       string `json:"isSystem"`
 	Description    string `json:"description"`
-	Version        string `json:"version"`
-	DefaultVersion string `json:"defaultVersion"`
-	IconLink       string `json:"iconLink"`
+	DefaultVersion string `json:"defaultVersion" yaml:"version"`
 	//UpgradeVersionLinks map[string]string `json:"upgradeVersionLinks"`
 	Path       string `json:"path"`
 	Maintainer string `json:"maintainer"`
@@ -43,6 +41,7 @@ type TemplateResource struct {
 	client.Resource
 	Template
 
+	IconLink     string            `json:"iconLink"`
 	VersionLinks map[string]string `json:"versionLinks"`
 }
 

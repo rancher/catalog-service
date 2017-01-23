@@ -6,7 +6,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/model"
-	"github.com/rancher/catalog-service/parse"
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
 )
@@ -26,6 +25,9 @@ func versionId(template model.Template, version model.Version) string {
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
 	}
+	if template.Base == "" {
+		return fmt.Sprintf("%s:%s:%d", template.Catalog, template.FolderName, version.Revision)
+	}
 	return fmt.Sprintf("%s:%s*%s:%d", template.Catalog, template.Base, template.FolderName, version.Revision)
 }
 
@@ -33,6 +35,9 @@ func templateId(template model.Template) string {
 	// TODO: use logrus
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
+	}
+	if template.Base == "" {
+		return fmt.Sprintf("%s:%s", template.Catalog, template.FolderName)
 	}
 	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Base, template.FolderName)
 }
@@ -42,7 +47,7 @@ func addTemplateFieldsToVersion(version *model.Version, template *model.Template
 	version.IsSystem = template.IsSystem
 	version.Description = template.Description
 	version.DefaultVersion = template.DefaultVersion
-	version.IconLink = template.IconLink
+	//version.IconLink = template.IconLink
 	version.Path = template.Path
 	// TODO: finish
 	return version
@@ -68,6 +73,7 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 			Links: links,
 		},
 		Template:     template,
+		IconLink:     links["icon"],
 		VersionLinks: versionLinks,
 	}
 }
@@ -81,15 +87,15 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 		filesMap[file.Name] = file.Contents
 	}
 
-	dockerCompose, ok := filesMap["docker-compose.yml"]
 	var bindings map[string]model.Bindings
+	/*dockerCompose, ok := filesMap["docker-compose.yml"]
 	if ok {
 		var err error
 		bindings, err = parse.Bindings([]byte(dockerCompose))
 		if err != nil {
 			return nil, err
 		}
-	}
+	}*/
 
 	links := map[string]string{}
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
