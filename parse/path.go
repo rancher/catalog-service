@@ -47,7 +47,7 @@ func TemplateURLPath(path string) (string, string, string, int, bool) {
 	}
 }
 
-func ConfigPath(path string) (string, string, bool) {
+func TemplatePath(path string) (string, string, bool) {
 	split := strings.Split(path, "/")
 	if len(split) < 2 {
 		return "", "", false
@@ -55,7 +55,7 @@ func ConfigPath(path string) (string, string, bool) {
 	return split[0], split[1], true
 }
 
-func DiskPath(path string) (string, string, int, bool) {
+func VersionPath(path string) (string, string, int, bool) {
 	split := strings.Split(path, "/")
 	if len(split) < 3 {
 		return "", "", 0, false

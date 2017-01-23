@@ -3,15 +3,14 @@ package model
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/rancher/go-rancher/client"
 )
 
 type Version struct {
-	Catalog        string `json:"catalogId"`
-	EnvironmentId  string `json:"environmentId"`
-	Template       string `json:"template"`
-	Revision       int    `json:"revision"`
-	DockerCompose  string `json:"dockerCompose"`
-	RancherCompose string `json:"rancherCompose"`
+	Catalog       string `json:"catalogId"`
+	EnvironmentId string `json:"environmentId"`
+	Template      string `json:"template"`
+	Revision      int    `json:"revision"`
 
 	// TODO: can move to Resource?
 	Category       string `json:"category"`
@@ -41,9 +40,19 @@ type Version struct {
 
 	// TODO
 	//	FolderName     string `json:"revision"`
+	// TODO move to model
+	Files []File
 }
 
 type VersionModel struct {
 	gorm.Model
 	Version
+}
+
+type TemplateVersionResource struct {
+	client.Resource
+	Version
+
+	Bindings map[string]Bindings `json:"bindings"`
+	Files    map[string]string   `json:"files"`
 }

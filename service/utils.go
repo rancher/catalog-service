@@ -72,21 +72,23 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 	}
 }
 
-func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version) (*model.TemplateVersionResource, error) {
+func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version, files []model.File) (*model.TemplateVersionResource, error) {
 	templateId := templateId(template)
 	versionId := versionId(template, version)
 
-	bindings, err := parse.Bindings([]byte(version.DockerCompose))
-	if err != nil {
-		return nil, err
+	filesMap := map[string]string{}
+	for _, file := range files {
+		filesMap[file.Name] = file.Contents
 	}
 
-	files := map[string]string{}
-	if version.DockerCompose != "" {
-		files["docker-compose.yml"] = version.DockerCompose
-	}
-	if version.RancherCompose != "" {
-		files["rancher-compose.yml"] = version.RancherCompose
+	dockerCompose, ok := filesMap["docker-compose.yml"]
+	var bindings map[string]model.Bindings
+	if ok {
+		var err error
+		bindings, err = parse.Bindings([]byte(dockerCompose))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	links := map[string]string{}
@@ -100,6 +102,6 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 		},
 		Version:  *addTemplateFieldsToVersion(&version, &template),
 		Bindings: bindings,
-		Files:    files,
+		Files:    filesMap,
 	}, nil
 }

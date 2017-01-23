@@ -46,14 +46,6 @@ type TemplateResource struct {
 	VersionLinks map[string]string `json:"versionLinks"`
 }
 
-type TemplateVersionResource struct {
-	client.Resource
-	Version
-
-	Bindings map[string]Bindings `json:"bindings"`
-	Files    map[string]string   `json:"files"`
-}
-
 type TemplateCollection struct {
 	client.Collection
 	Data []TemplateResource `json:"data,omitempty"`

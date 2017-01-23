@@ -3,7 +3,6 @@ package manager
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -12,11 +11,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/rancher/catalog-service/model"
-	"github.com/rancher/catalog-service/parse"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/yaml.v2"
 )
 
 // TODO: move elsewhere
@@ -90,14 +86,6 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 		return err
 	}
 
-	for _, template := range templates {
-		fmt.Println("#", template, template.Base)
-	}
-
-	for _, version := range versions {
-		fmt.Println("@", version.Template, version.Revision)
-	}
-
 	// TODO: do not need to always create catalog
 	if err = db.Create(&model.CatalogModel{
 		Catalog: model.Catalog{
@@ -123,10 +111,19 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig, db *gorm.DB)
 	for _, version := range versions {
 		version.Catalog = name
 		version.EnvironmentId = config.EnvironmentId
-		if err = db.Create(&model.VersionModel{
+		versionModel := model.VersionModel{
 			Version: version,
-		}).Error; err != nil {
+		}
+		if err = db.Create(&versionModel).Error; err != nil {
 			return err
+		}
+		for _, file := range version.Files {
+			file.VersionID = versionModel.ID
+			if err = db.Create(&model.FileModel{
+				File: file,
+			}).Error; err != nil {
+				return err
+			}
 		}
 	}
 
@@ -201,114 +198,4 @@ func getTemplatesBase(filename string) (string, bool) {
 		return "", false
 	}
 	return dirSplit[0], true
-}
-
-func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, error) {
-	templates := []model.Template{}
-	templateIndex := map[string]*model.Template{}
-	versions := []model.Version{}
-	return templates, versions, files.ForEach(func(f *object.File) error {
-		templatesBase, parsedCorrectly := getTemplatesBase(f.Name)
-		if !parsedCorrectly {
-			return nil
-		}
-
-		dir, filename := path.Split(f.Name)
-
-		switch {
-		case filename == "config.yml":
-			_, templateFolderName, parsedCorrectly := parse.ConfigPath(f.Name)
-			if !parsedCorrectly {
-				return nil
-			}
-			contents, err := f.Contents()
-			if err != nil {
-				return err
-			}
-			//var templateConfig TemplateConfig
-			var template model.Template
-			if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
-				return err
-			}
-			template.Base = templatesBase
-			template.FolderName = templateFolderName
-			if existingTemplate, ok := templateIndex[dir]; ok {
-				template.Icon = existingTemplate.Icon
-			}
-			templateIndex[dir] = &template
-			templates = append(templates, template)
-		case strings.HasPrefix(filename, "catalogIcon"):
-			_, _, parsedCorrectly := parse.ConfigPath(f.Name)
-			if !parsedCorrectly {
-				return nil
-			}
-			contents, err := f.Contents()
-			if err != nil {
-				return err
-			}
-			if _, ok := templateIndex[dir]; !ok {
-				templateIndex[dir] = &model.Template{}
-			}
-			templateIndex[dir].Icon = []byte(contents)
-		case filename == "docker-compose.yml":
-			// Save docker-compose.yml to version
-			_, templateFolderName, revision, parsedCorrectly := parse.DiskPath(f.Name)
-			if !parsedCorrectly {
-				return nil
-			}
-			contents, err := f.Contents()
-			if err != nil {
-				return err
-			}
-			foundExisting := false
-			for i, version := range versions {
-				// TODO: need a better if
-				if version.Template == templateFolderName && version.Revision == revision {
-					versions[i].DockerCompose = contents
-					foundExisting = true
-				}
-			}
-			if !foundExisting {
-				versions = append(versions, model.Version{
-					Template:      templateFolderName,
-					Revision:      revision,
-					DockerCompose: contents,
-				})
-			}
-		case filename == "rancher-compose.yml":
-			_, templateFolderName, revision, parsedCorrectly := parse.DiskPath(f.Name)
-			if !parsedCorrectly {
-				return nil
-			}
-			contents, err := f.Contents()
-			if err != nil {
-				return err
-			}
-			foundExisting := false
-			for i, version := range versions {
-				// TODO: need a better if
-				if version.Template == templateFolderName && version.Revision == revision {
-					foundExisting = true
-					catalogInfo, err := parse.CatalogInfoFromRancherCompose([]byte(contents))
-					if err != nil {
-						return err
-					}
-					catalogInfo.Template = version.Template
-					catalogInfo.Revision = version.Revision
-					catalogInfo.DockerCompose = version.DockerCompose
-					catalogInfo.RancherCompose = contents
-					versions[i] = catalogInfo
-				}
-			}
-			if !foundExisting {
-				versions = append(versions, model.Version{
-					Template:       templateFolderName,
-					Revision:       revision,
-					RancherCompose: contents,
-				})
-			}
-		}
-
-		return nil
-	})
 }

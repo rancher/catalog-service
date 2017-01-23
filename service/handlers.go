@@ -214,7 +214,17 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Revision:      revisionNumber,
 			},
 		}).First(&version)
-		versionResource, err := versionResource(apiContext, template.Template, version.Version)
+		var fileModels []model.FileModel
+		db.Where(&model.FileModel{
+			File: model.File{
+				VersionID: version.ID,
+			},
+		}).Find(&fileModels)
+		var files []model.File
+		for _, fileModel := range fileModels {
+			files = append(files, fileModel.File)
+		}
+		versionResource, err := versionResource(apiContext, template.Template, version.Version, files)
 		if err != nil {
 			ReturnHTTPError(w, r, http.StatusBadRequest, err)
 			return

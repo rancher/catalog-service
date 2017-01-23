@@ -40,6 +40,7 @@ func main() {
 	db.AutoMigrate(&model.CatalogModel{})
 	db.AutoMigrate(&model.TemplateModel{})
 	db.AutoMigrate(&model.VersionModel{})
+	db.AutoMigrate(&model.FileModel{})
 
 	m := manager.NewManager(*cacheRoot, config, db)
 	if err = m.RefreshAll(); err != nil {
