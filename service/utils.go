@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/model"
+	"github.com/rancher/catalog-service/parse"
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
 )
@@ -97,6 +98,16 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 		}
 	}*/
 
+	var questions []model.Question
+	rancherCompose, ok := filesMap["rancher-compose.yml"]
+	if ok {
+		catalogInfo, err := parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
+		if err != nil {
+			return nil, err
+		}
+		questions = catalogInfo.Questions
+	}
+
 	links := map[string]string{}
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
 
@@ -106,8 +117,9 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 			Type:  "templateVersion",
 			Links: links,
 		},
-		Version:  *addTemplateFieldsToVersion(&version, &template),
-		Bindings: bindings,
-		Files:    filesMap,
+		Version:   *addTemplateFieldsToVersion(&version, &template),
+		Bindings:  bindings,
+		Files:     filesMap,
+		Questions: questions,
 	}, nil
 }

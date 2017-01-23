@@ -1,10 +1,5 @@
 package model
 
-import (
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/rancher/go-rancher/client"
-)
-
 type Question struct {
 	Variable     string   `json:"variable" yaml:"variable,omitempty"`
 	Label        string   `json:"label" yaml:"label,omitempty"`
@@ -20,9 +15,4 @@ type Question struct {
 	Options      []string `json:"options" yaml:"options,omitempty"`
 	ValidChars   string   `json:"validChars" yaml:"valid_chars,omitempty"`
 	InvalidChars string   `json:"invalidChars" yaml:"invalid_chars,omitempty"`
-}
-
-type QuestionResource struct {
-	client.Resource
-	Question
 }

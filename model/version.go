@@ -41,7 +41,8 @@ type Version struct {
 	// TODO
 	//	FolderName     string `json:"revision"`
 	// TODO move to model
-	Files []File
+	Files     []File
+	Questions []Question
 }
 
 type VersionModel struct {
@@ -53,6 +54,7 @@ type TemplateVersionResource struct {
 	client.Resource
 	Version
 
-	Bindings map[string]Bindings `json:"bindings"`
-	Files    map[string]string   `json:"files"`
+	Bindings  map[string]Bindings `json:"bindings"`
+	Files     map[string]string   `json:"files"`
+	Questions []Question          `json:"questions"`
 }
