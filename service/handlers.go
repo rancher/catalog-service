@@ -113,12 +113,30 @@ func getTemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	catalog := r.URL.Query().Get("catalogId")
+	if catalog == "" {
+		catalog = r.URL.Query().Get("catalog")
+	}
+	category := r.URL.Query().Get("category")
+
+	/*templateBaseEq := r.URL.Query().Get("templateBase_eq")
+	templateBaseNe := r.URL.Query().Get("templateBase_ne")
+	minumumRancherVersionLte := r.URL.Query().Get("minumumRancherVersion_lte")
+	maximumRancherVersionGte := r.URL.Query().Get("maximumRancherVersion_gte")*/
+
 	var templates []model.TemplateModel
-	db.Find(&templates, &model.TemplateModel{
+	query := model.TemplateModel{
 		Template: model.Template{
 			EnvironmentId: environmentId,
 		},
-	})
+	}
+	if catalog != "" {
+		query.Catalog = catalog
+	}
+	if category != "" {
+		query.Category = category
+	}
+	db.Find(&templates, &query)
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
