@@ -1,7 +1,5 @@
 package model
 
-import _ "github.com/jinzhu/gorm/dialects/sqlite"
-
 type RancherCompose struct {
 	Name                  string     `yaml:"name"`
 	UUID                  string     `yaml:"uuid"`
