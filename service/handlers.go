@@ -1,11 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rancher/catalog-service/model"
@@ -203,7 +205,8 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		}).First(&templateModel)
 
 		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
-			w.Write(templateModel.Icon)
+			iconReader := bytes.NewReader(templateModel.Icon)
+			http.ServeContent(w, r, templateModel.IconFilename, time.Time{}, iconReader)
 			return
 		}
 

@@ -28,7 +28,6 @@ type Version struct {
 	Maintainer string `json:"maintainer"`
 	License    string `json:"license"`
 	ProjectURL string `json:"projectURL"`
-	ReadmeLink string `json:"readmeLink"`
 	//Output                           Output                 `json:"output" yaml:"output,omitempty"`
 	TemplateBase string `json:"templateBase"`
 	//Labels                map[string]string      `json:"labels"`

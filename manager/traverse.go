@@ -41,6 +41,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			template.FolderName = templateFolderName
 			if existingTemplate, ok := templateIndex[dir]; ok {
 				template.Icon = existingTemplate.Icon
+				template.IconFilename = existingTemplate.IconFilename
 			}
 			templateIndex[dir] = &template
 			// TODO: just move this to the end of the function
@@ -58,6 +59,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 				templateIndex[dir] = &model.Template{}
 			}
 			templateIndex[dir].Icon = []byte(contents)
+			templateIndex[dir].IconFilename = filename
 			//case strings.ToLower(filename):
 			// TODO: determine if README is in template or version
 		default:

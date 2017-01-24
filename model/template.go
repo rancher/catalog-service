@@ -18,7 +18,6 @@ type Template struct {
 	Maintainer string `json:"maintainer"`
 	License    string `json:"license"`
 	ProjectURL string `json:"projectURL"`
-	ReadmeLink string `json:"readmeLink"`
 	//TemplateBase string `json:"templateBase"`
 	//Labels                map[string]string      `json:"labels"`
 	UpgradeFrom string `json:"upgradeFrom"`
@@ -28,8 +27,9 @@ type Template struct {
 	Catalog       string `json:"catalogId"`
 	EnvironmentId string `json:"environmentId"`
 	//Prefix        string `json:"prefix"`
-	Base string `json:"templateBase"`
-	Icon []byte `json:"icon"`
+	Base         string `json:"templateBase"`
+	Icon         []byte `json:"icon"`
+	IconFilename string `json:"iconFilename"`
 }
 
 type TemplateModel struct {
