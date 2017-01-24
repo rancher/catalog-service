@@ -87,14 +87,14 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 	}
 
 	var bindings map[string]model.Bindings
-	/*dockerCompose, ok := filesMap["docker-compose.yml"]
+	dockerCompose, ok := filesMap["docker-compose.yml"]
 	if ok {
 		var err error
 		bindings, err = parse.Bindings([]byte(dockerCompose))
 		if err != nil {
 			return nil, err
 		}
-	}*/
+	}
 
 	var questions []model.Question
 	rancherCompose, ok := filesMap["rancher-compose.yml"]

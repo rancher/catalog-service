@@ -5,6 +5,7 @@ import (
 	"github.com/docker/libcompose/utils"
 	"github.com/docker/libcompose/yaml"
 	"github.com/rancher/catalog-service/model"
+	"github.com/rancher/rancher-compose/preprocess"
 )
 
 func Bindings(contents []byte) (map[string]model.Bindings, error) {
@@ -15,12 +16,11 @@ func Bindings(contents []byte) (map[string]model.Bindings, error) {
 
 	rawServiceMap := config.Services
 
-	// TODO
-	/*preProcessServiceMap := preprocess.PreprocessServiceMap(nil)
+	preProcessServiceMap := preprocess.PreprocessServiceMap(nil)
 	rawServiceMap, err = preProcessServiceMap(rawServiceMap)
 	if err != nil {
 		return nil, err
-	}*/
+	}
 
 	bindingsMap := map[string]model.Bindings{}
 	for serviceName, service := range rawServiceMap {
