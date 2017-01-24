@@ -48,7 +48,6 @@ func addTemplateFieldsToVersion(version *model.Version, template *model.Template
 	version.IsSystem = template.IsSystem
 	version.Description = template.Description
 	version.DefaultVersion = template.DefaultVersion
-	//version.IconLink = template.IconLink
 	version.Path = template.Path
 	// TODO: finish
 	return version
@@ -74,7 +73,6 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 			Links: links,
 		},
 		Template:     template,
-		IconLink:     links["icon"],
 		VersionLinks: versionLinks,
 	}
 }
@@ -110,6 +108,7 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 
 	links := map[string]string{}
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
+	links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
 
 	return &model.TemplateVersionResource{
 		Resource: client.Resource{

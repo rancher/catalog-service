@@ -204,15 +204,14 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 
 		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
 			w.Write(templateModel.Icon)
-		} else if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
-			w.Write([]byte("TODO"))
-		} else {
-			var versions []model.Version
-			for _, versionModel := range versionModels {
-				versions = append(versions, versionModel.Version)
-			}
-			apiContext.Write(templateResource(apiContext, templateModel.Template, versions))
+			return
 		}
+
+		var versions []model.Version
+		for _, versionModel := range versionModels {
+			versions = append(versions, versionModel.Version)
+		}
+		apiContext.Write(templateResource(apiContext, templateModel.Template, versions))
 	} else {
 		// Return template version
 		var template model.TemplateModel
@@ -233,6 +232,12 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Revision:      revisionNumber,
 			},
 		}).First(&version)
+
+		if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
+			w.Write([]byte(version.Readme))
+			return
+		}
+
 		var fileModels []model.FileModel
 		db.Where(&model.FileModel{
 			File: model.File{

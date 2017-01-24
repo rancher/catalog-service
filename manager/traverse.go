@@ -93,24 +93,31 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 
 	versions := []model.Version{}
 	for _, version := range versionsIndex {
+		var readme string
+		for _, file := range version.Files {
+			if strings.ToLower(file.Name) == "readme.md" {
+				readme = file.Contents
+			}
+		}
 		var rancherCompose string
 		for _, file := range version.Files {
 			if file.Name == "rancher-compose.yml" {
 				rancherCompose = file.Contents
 			}
 		}
-		if rancherCompose == "" {
-			continue
+		newVersion := *version
+		if rancherCompose != "" {
+			var err error
+			newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
+			if err != nil {
+				return nil, nil, err
+			}
+			newVersion.Template = version.Template
+			newVersion.Revision = version.Revision
+			newVersion.Files = version.Files
 		}
-
-		catalogInfo, err := parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
-		if err != nil {
-			return nil, nil, err
-		}
-		catalogInfo.Template = version.Template
-		catalogInfo.Revision = version.Revision
-		catalogInfo.Files = version.Files
-		versions = append(versions, catalogInfo)
+		newVersion.Readme = readme
+		versions = append(versions, newVersion)
 	}
 
 	return templates, versions, nil

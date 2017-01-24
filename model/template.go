@@ -41,7 +41,6 @@ type TemplateResource struct {
 	client.Resource
 	Template
 
-	IconLink     string            `json:"iconLink"`
 	VersionLinks map[string]string `json:"versionLinks"`
 }
 

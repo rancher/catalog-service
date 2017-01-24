@@ -18,8 +18,6 @@ type Version struct {
 	Description    string `json:"description"`
 	Version        string `json:"version"`
 	DefaultVersion string `json:"defaultVersion"`
-	IconLink       string `json:"iconLink"`
-	//VersionLinks        map[string]string `json:"versionLinks"`
 	//UpgradeVersionLinks map[string]string `json:"upgradeVersionLinks"`
 	//Files               map[string]string `json:"files"`
 	//Questions                        []Question        `json:"questions"`
@@ -43,6 +41,7 @@ type Version struct {
 	// TODO move to model
 	Files     []File
 	Questions []Question
+	Readme    string `json:"readme"`
 }
 
 type VersionModel struct {

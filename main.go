@@ -49,6 +49,8 @@ func main() {
 		fmt.Println(err)
 	}
 
+	fmt.Println("Starting server")
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", 8088), &service.MuxWrapper{
 		IsReady: false,
 		Router:  service.NewRouter(manager.NewManager(*cacheRoot, config, db), db),
