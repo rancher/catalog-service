@@ -219,6 +219,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		// Return template version
 		var template model.TemplateModel
 		var version model.VersionModel
+		var versionModels []model.VersionModel
 		db.Where(&model.TemplateModel{
 			Template: model.Template{
 				Catalog:       catalogName,
@@ -227,6 +228,13 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 				Base:          templateBase,
 			},
 		}).First(&template)
+		db.Where(&model.VersionModel{
+			Version: model.Version{
+				Catalog:       catalogName,
+				Template:      templateName,
+				EnvironmentId: environmentId,
+			},
+		}).Find(&versionModels)
 		db.Where(&model.VersionModel{
 			Version: model.Version{
 				Catalog:       catalogName,
@@ -253,7 +261,12 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		for _, fileModel := range fileModels {
 			files = append(files, fileModel.File)
 		}
-		versionResource, err := versionResource(apiContext, template.Template, version.Version, files)
+
+		var versions []model.Version
+		for _, versionModel := range versionModels {
+			versions = append(versions, versionModel.Version)
+		}
+		versionResource, err := versionResource(apiContext, template.Template, version.Version, versions, files)
 		if err != nil {
 			ReturnHTTPError(w, r, http.StatusBadRequest, err)
 			return

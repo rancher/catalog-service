@@ -15,7 +15,6 @@ type Version struct {
 	Version               string `json:"version"`
 	MinimumRancherVersion string `json:"minimumRancherVersion"`
 	MaximumRancherVersion string `json:"maximumRancherVersion"`
-	UpgradeFrom           string `json:"upgradeFrom"`
 
 	// TODO move to model
 	Files     []File
@@ -32,7 +31,8 @@ type TemplateVersionResource struct {
 	client.Resource
 	Version
 
-	Bindings  map[string]Bindings `json:"bindings"`
-	Files     map[string]string   `json:"files"`
-	Questions []Question          `json:"questions"`
+	Bindings            map[string]Bindings `json:"bindings"`
+	Files               map[string]string   `json:"files"`
+	Questions           []Question          `json:"questions"`
+	UpgradeVersionLinks map[string]string   `json:"upgradeVersionLinks"`
 }

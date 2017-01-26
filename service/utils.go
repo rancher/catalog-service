@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
+	"github.com/rancher/catalog-service/utils"
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
 )
@@ -21,7 +22,7 @@ func URLEncoded(str string) string {
 	return u.String()
 }
 
-func versionId(template model.Template, version model.Version) string {
+func generateVersionId(template model.Template, version model.Version) string {
 	// TODO: use logrus
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
@@ -32,7 +33,7 @@ func versionId(template model.Template, version model.Version) string {
 	return fmt.Sprintf("%s:%s*%s:%d", template.Catalog, template.Base, template.FolderName, version.Revision)
 }
 
-func templateId(template model.Template) string {
+func generateTemplateId(template model.Template) string {
 	// TODO: use logrus
 	if template.FolderName == "" {
 		fmt.Println("Missing FolderName")
@@ -44,11 +45,11 @@ func templateId(template model.Template) string {
 }
 
 func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version) *model.TemplateResource {
-	templateId := templateId(template)
+	templateId := generateTemplateId(template)
 
 	versionLinks := map[string]string{}
 	for _, version := range versions {
-		route := versionId(template, version)
+		route := generateVersionId(template, version)
 		link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 		versionLinks[version.Version] = URLEncoded(link)
 	}
@@ -67,9 +68,9 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 	}
 }
 
-func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version, files []model.File) (*model.TemplateVersionResource, error) {
-	templateId := templateId(template)
-	versionId := versionId(template, version)
+func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version, versions []model.Version, files []model.File) (*model.TemplateVersionResource, error) {
+	templateId := generateTemplateId(template)
+	versionId := generateVersionId(template, version)
 
 	filesMap := map[string]string{}
 	for _, file := range files {
@@ -100,15 +101,25 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
 	links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
 
+	upgradeVersionLinks := map[string]string{}
+	for _, otherVersion := range versions {
+		if utils.VersionGreaterThan(otherVersion.Version, version.Version) {
+			route := generateVersionId(template, otherVersion)
+			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
+			upgradeVersionLinks[otherVersion.Version] = URLEncoded(link)
+		}
+	}
+
 	return &model.TemplateVersionResource{
 		Resource: client.Resource{
 			Id:    versionId,
 			Type:  "templateVersion",
 			Links: links,
 		},
-		Version:   version,
-		Bindings:  bindings,
-		Files:     filesMap,
-		Questions: questions,
+		Version:             version,
+		Bindings:            bindings,
+		Files:               filesMap,
+		Questions:           questions,
+		UpgradeVersionLinks: upgradeVersionLinks,
 	}, nil
 }
