@@ -27,15 +27,28 @@ func TestGreaterThan(t *testing.T) {
 	})
 
 	testAscending(t, []string{
+		"v0.1.0-rancher0",
 		"v0.1.0-rancher1",
 		"v1.2.4-rancher6",
 		"v1.2.4-rancher6.1",
 		"v1.2.4-rancher7",
 		"v1.2.4-rancher7.2",
 		"v1.2.4-rancher7.3",
+		"v1.2.4-rancher9.0",
+		"v1.2.4-rancher10.10",
+		"v1.2.4-rancher12.0",
+		"v1.2.4-rancher12.5",
+		"v1.2.4-rancher14",
+		"v1.2.4-rancher15.10",
 		"v1.3.0-rancher3",
 		"v1.3.0-rancher4",
 	})
-	// TODO: this should pass
-	//assert.True(t, GreaterThan("v1.2.0-rancher12", "v1.2.0-rancher3"))
+
+	// TODO: handle logic like this?
+	/*testAscending(t, []string{
+		"v0.1.0-alpha1",
+		"v0.1.0-beta1",
+		"v0.1.0-rc1",
+		"v0.1.0",
+	})*/
 }
