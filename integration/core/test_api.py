@@ -1,11 +1,13 @@
 import pytest
 import cattle
 import requests
+import time
 from wait_for import wait_for
 
 
 @pytest.fixture
 def client():
+    time.sleep(10)
     url = 'http://localhost:8088/v1-catalog/schemas'
     catalogs = cattle.from_env(url=url).list_catalog()
     wait_for(

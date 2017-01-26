@@ -43,6 +43,7 @@ func templateId(template model.Template) string {
 	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Base, template.FolderName)
 }
 
+// TODO: is this really needed?
 func addTemplateFieldsToVersion(version *model.Version, template *model.Template) *model.Version {
 	version.Category = template.Category
 	version.IsSystem = template.IsSystem

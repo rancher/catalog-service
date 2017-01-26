@@ -4,9 +4,9 @@
       "url": "https://github.com/rancher/rancher-catalog",
       "environmentId": "e1"
     },
-    "library2": {
-      "url": "https://github.com/rancher/rancher-catalog",
-      "environmentId": "e2"
+    "community": {
+      "url": "https://github.com/rancher/community-catalog",
+      "environmentId": "e1"
     }
   }
 }

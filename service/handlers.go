@@ -244,7 +244,9 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		var fileModels []model.FileModel
 		db.Where(&model.FileModel{
 			File: model.File{
-				VersionID: version.ID,
+				Catalog:       catalogName,
+				EnvironmentId: environmentId,
+				VersionID:     version.ID,
 			},
 		}).Find(&fileModels)
 		var files []model.File

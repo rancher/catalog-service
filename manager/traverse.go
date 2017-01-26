@@ -1,35 +1,44 @@
 package manager
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/yaml.v2"
 )
 
-func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, error) {
+func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 	templateIndex := map[string]*model.Template{}
 	versionsIndex := map[string]*model.Version{}
-	if err := files.ForEach(func(f *object.File) error {
-		templatesBase, parsedCorrectly := getTemplatesBase(f.Name)
+
+	if err := filepath.Walk(repoPath, func(fullPath string, f os.FileInfo, err error) error {
+		relativePath, err := filepath.Rel(repoPath, fullPath)
+		if err != nil {
+			return err
+		}
+
+		templatesBase, parsedCorrectly := getTemplatesBase(relativePath)
 		if !parsedCorrectly {
 			return nil
 		}
 
-		dir, filename := path.Split(f.Name)
+		dir, filename := path.Split(relativePath)
 
 		switch {
 		case filename == "config.yml":
-			_, templateFolderName, parsedCorrectly := parse.TemplatePath(f.Name)
+			_, templateFolderName, parsedCorrectly := parse.TemplatePath(relativePath)
 			if !parsedCorrectly {
 				return nil
 			}
-			contents, err := f.Contents()
+			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
+				return nil
 				return err
 			}
 			//var templateConfig TemplateConfig
@@ -47,12 +56,13 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			// TODO: just move this to the end of the function
 			//templates = append(templates, template)
 		case strings.HasPrefix(filename, "catalogIcon"):
-			_, _, parsedCorrectly := parse.TemplatePath(f.Name)
+			_, _, parsedCorrectly := parse.TemplatePath(relativePath)
 			if !parsedCorrectly {
 				return nil
 			}
-			contents, err := f.Contents()
+			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
+				return nil
 				return err
 			}
 			if _, ok := templateIndex[dir]; !ok {
@@ -63,12 +73,15 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			//case strings.ToLower(filename):
 			// TODO: determine if README is in template or version
 		default:
-			_, templateFolderName, revision, parsedCorrectly := parse.VersionPath(f.Name)
+			_, templateFolderName, revision, parsedCorrectly := parse.VersionPath(relativePath)
 			if !parsedCorrectly {
 				return nil
 			}
-			contents, err := f.Contents()
+
+			fmt.Println(templateFolderName, revision)
+			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
+				return nil
 				return err
 			}
 			if _, ok := versionsIndex[dir]; !ok {
@@ -78,7 +91,7 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 			}
 			versionsIndex[dir].Files = append(versionsIndex[dir].Files, model.File{
 				Name:     filename,
-				Contents: contents,
+				Contents: string(contents),
 			})
 
 		}
@@ -123,4 +136,22 @@ func traverseFiles(files *object.FileIter) ([]model.Template, []model.Version, e
 	}
 
 	return templates, versions, nil
+}
+
+func getTemplatesBase(filename string) (string, bool) {
+	dir, _ := path.Split(filename)
+	dirSplit := strings.Split(dir, "/")
+	if len(dirSplit) < 2 {
+		return "", false
+	}
+	firstDir := dirSplit[0]
+
+	if firstDir == "templates" {
+		return "", true
+	}
+	dirSplit = strings.Split(firstDir, "-")
+	if len(dirSplit) != 2 {
+		return "", false
+	}
+	return dirSplit[0], true
 }

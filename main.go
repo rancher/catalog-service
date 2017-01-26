@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/rancher/catalog-service/manager"
@@ -44,14 +44,12 @@ func main() {
 
 	m := manager.NewManager(*cacheRoot, config, db)
 	if err = m.RefreshAll(); err != nil {
-		// TODO
-		//log.Fatal(err)
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
-	fmt.Println("Starting server")
+	log.Infof("Starting Catalog Service on port %d", *port)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", 8088), &service.MuxWrapper{
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), &service.MuxWrapper{
 		IsReady: false,
 		Router:  service.NewRouter(manager.NewManager(*cacheRoot, config, db), db),
 	}))

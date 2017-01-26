@@ -5,9 +5,11 @@ import (
 )
 
 type File struct {
-	Name      string `json:"name"`
-	Contents  string
-	VersionID uint
+	Catalog       string `json:"catalogId"`
+	EnvironmentId string `json:"environmentId"`
+	Name          string `json:"name"`
+	Contents      string
+	VersionID     uint
 }
 
 type FileModel struct {
