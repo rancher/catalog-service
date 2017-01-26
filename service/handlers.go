@@ -3,9 +3,7 @@ package service
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,36 +13,6 @@ import (
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
 )
-
-const (
-	environmentIdHeader = "x-api-project-id"
-)
-
-func getEnvironmentId(r *http.Request) (string, error) {
-	fmt.Println("Environment header: ", r.Header.Get(environmentIdHeader))
-	// TODO
-	return "e1", nil
-	environment := r.Header.Get(environmentIdHeader)
-	if environment == "" {
-		return "", fmt.Errorf("Request is missing environment header %s", environment)
-	}
-	return environment, nil
-}
-
-func ReturnHTTPError(w http.ResponseWriter, r *http.Request, httpStatus int, err error) {
-	w.WriteHeader(httpStatus)
-
-	catalogError := model.CatalogError{
-		Resource: client.Resource{
-			Type: "error",
-		},
-		Status:  strconv.Itoa(httpStatus),
-		Message: err.Error(),
-	}
-
-	api.CreateApiContext(w, r, schemas)
-	api.GetApiContext(r).Write(&catalogError)
-}
 
 func getCatalogs(w http.ResponseWriter, r *http.Request) {
 	apiContext := api.GetApiContext(r)
@@ -97,13 +65,45 @@ func getCatalog(w http.ResponseWriter, r *http.Request) {
 		},
 	}).First(&catalog)
 
-	apiContext.Write(&model.CatalogResource{
-		Resource: client.Resource{
-			Id:   catalog.Name,
-			Type: "catalog",
+	apiContext.Write(catalogResource(catalog.Catalog))
+}
+
+func createCatalog(w http.ResponseWriter, r *http.Request) {
+	apiContext := api.GetApiContext(r)
+
+	environmentId, err := getEnvironmentId(r)
+	if err != nil {
+		ReturnHTTPError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	catalogName := r.FormValue("name")
+	url := r.FormValue("url")
+	//refreshInterval := r.URL.Query().Get("refreshInterval")
+
+	if catalogName == "" {
+		ReturnHTTPError(w, r, http.StatusBadRequest, errors.New("Missing field 'name'"))
+		return
+	}
+	if url == "" {
+		ReturnHTTPError(w, r, http.StatusBadRequest, errors.New("Missing field 'url'"))
+		return
+	}
+
+	catalogModel := model.CatalogModel{
+		Catalog: model.Catalog{
+			EnvironmentId: environmentId,
+			Name:          catalogName,
+			URL:           url,
 		},
-		Catalog: catalog.Catalog,
-	})
+	}
+
+	if err := db.Create(&catalogModel).Error; err != nil {
+		ReturnHTTPError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	apiContext.Write(catalogResource(catalogModel.Catalog))
 }
 
 func getTemplates(w http.ResponseWriter, r *http.Request) {
@@ -328,9 +328,10 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request) {
 }
 
 func refreshCatalog(w http.ResponseWriter, r *http.Request) {
+	// TODO: should not refresh across all environments
 	if err := m.RefreshAll(); err != nil {
 		ReturnHTTPError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }

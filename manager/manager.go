@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/jinzhu/gorm"
+	"github.com/rancher/catalog-service/model"
 )
 
 // TODO: move elsewhere
@@ -31,9 +32,29 @@ func NewManager(cacheRoot string, config map[string]CatalogConfig, db *gorm.DB) 
 	}
 }
 
+func (m *Manager) CreateConfigCatalogs() error {
+	for name, config := range m.config {
+		if err := m.db.Create(&model.CatalogModel{
+			Catalog: model.Catalog{
+				Name: name,
+				URL:  config.URL,
+				// TODO
+				EnvironmentId: "e1",
+			},
+		}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *Manager) RefreshAll() error {
-	for catalogName, catalogConfig := range m.config {
-		if err := m.refreshCatalog(catalogName, catalogConfig); err != nil {
+	catalogs, err := m.lookupCatalogs("")
+	if err != nil {
+		return err
+	}
+	for _, catalog := range catalogs {
+		if err := m.refreshCatalog(catalog); err != nil {
 			return err
 		}
 	}
@@ -41,18 +62,20 @@ func (m *Manager) RefreshAll() error {
 }
 
 func (m *Manager) Refresh(environmentId string) error {
-	for catalogName, catalogConfig := range m.config {
-		if catalogConfig.EnvironmentId == environmentId {
-			if err := m.refreshCatalog(catalogName, catalogConfig); err != nil {
-				return err
-			}
+	catalogs, err := m.lookupCatalogs(environmentId)
+	if err != nil {
+		return err
+	}
+	for _, catalog := range catalogs {
+		if err := m.refreshCatalog(catalog); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (m *Manager) refreshCatalog(name string, config CatalogConfig) error {
-	repoPath, err := m.prepareRepoPath(name, config)
+func (m *Manager) refreshCatalog(catalog model.Catalog) error {
+	repoPath, err := m.prepareRepoPath(catalog)
 	if err != nil {
 		return err
 	}
@@ -62,7 +85,7 @@ func (m *Manager) refreshCatalog(name string, config CatalogConfig) error {
 		return err
 	}
 
-	return m.updateDb(name, config, templates, versions)
+	return m.updateDb(catalog, templates, versions)
 }
 
 // TODO: move elsewhere

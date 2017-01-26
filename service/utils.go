@@ -2,7 +2,9 @@ package service
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/model"
@@ -11,6 +13,38 @@ import (
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
 )
+
+const (
+	environmentIdHeader = "x-api-project-id"
+)
+
+func getEnvironmentId(r *http.Request) (string, error) {
+	fmt.Println("Environment header: ", r.Header.Get(environmentIdHeader))
+	// TODO
+	return "e1", nil
+	environment := r.Header.Get(environmentIdHeader)
+	if environment == "" {
+		return "", fmt.Errorf("Request is missing environment header %s", environment)
+	}
+	return environment, nil
+}
+
+func ReturnHTTPError(w http.ResponseWriter, r *http.Request, httpStatus int, err error) {
+
+	fmt.Println(err)
+	w.WriteHeader(httpStatus)
+
+	catalogError := model.CatalogError{
+		Resource: client.Resource{
+			Type: "error",
+		},
+		Status:  strconv.Itoa(httpStatus),
+		Message: err.Error(),
+	}
+
+	api.CreateApiContext(w, r, schemas)
+	api.GetApiContext(r).Write(&catalogError)
+}
 
 // TODO: this should return an error
 func URLEncoded(str string) string {
@@ -42,6 +76,16 @@ func generateTemplateId(template model.Template) string {
 		return fmt.Sprintf("%s:%s", template.Catalog, template.FolderName)
 	}
 	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Base, template.FolderName)
+}
+
+func catalogResource(catalog model.Catalog) *model.CatalogResource {
+	return &model.CatalogResource{
+		Resource: client.Resource{
+			Id:   catalog.Name,
+			Type: "catalog",
+		},
+		Catalog: catalog,
+	}
 }
 
 func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version) *model.TemplateResource {

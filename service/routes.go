@@ -48,6 +48,12 @@ var routes = []Route{
 		getCatalogs,
 	},
 	{
+		"CreateCatalog",
+		"POST",
+		"/v1-catalog/catalogs",
+		createCatalog,
+	},
+	{
 		"GetCatalog",
 		"GET",
 		"/v1-catalog/catalogs/{catalog}",

@@ -42,6 +42,9 @@ func main() {
 	db.AutoMigrate(&model.FileModel{})
 
 	m := manager.NewManager(*cacheRoot, config, db)
+	if err = m.CreateConfigCatalogs(); err != nil {
+		log.Fatal(err)
+	}
 	if err = m.RefreshAll(); err != nil {
 		log.Fatal(err)
 	}
