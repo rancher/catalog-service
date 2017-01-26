@@ -71,9 +71,7 @@ func (m *Manager) updateDb(name string, config CatalogConfig, templates []model.
 		versionModel := model.VersionModel{
 			Version: version,
 		}
-		if err := tx.Create(&model.VersionModel{
-			Version: version,
-		}).Error; err != nil {
+		if err := tx.Create(&versionModel).Error; err != nil {
 			tx.Rollback()
 			return err
 		}

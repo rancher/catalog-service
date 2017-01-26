@@ -6,18 +6,15 @@ import (
 )
 
 type Template struct {
-	//CatalogID      string `json:"catalogId"`
 	Name           string `json:"name"`
 	Category       string `json:"category"`
 	IsSystem       string `json:"isSystem"`
 	Description    string `json:"description"`
 	DefaultVersion string `json:"defaultVersion" yaml:"version"`
-	//UpgradeVersionLinks map[string]string `json:"upgradeVersionLinks"`
-	Path       string `json:"path"`
-	Maintainer string `json:"maintainer"`
-	License    string `json:"license"`
-	ProjectURL string `json:"projectURL"`
-	//TemplateBase string `json:"templateBase"`
+	Path           string `json:"path"`
+	Maintainer     string `json:"maintainer"`
+	License        string `json:"license"`
+	ProjectURL     string `json:"projectURL"`
 	//Labels                map[string]string      `json:"labels"`
 	UpgradeFrom string `json:"upgradeFrom"`
 

@@ -5,37 +5,18 @@ import (
 	"github.com/rancher/go-rancher/client"
 )
 
+// TODO: might need a Base field for filtering
+// TODO: might need a FolderName field for filtering
 type Version struct {
-	Catalog       string `json:"catalogId"`
-	EnvironmentId string `json:"environmentId"`
-	Template      string `json:"template"`
-	Revision      int    `json:"revision"`
-
-	// TODO: can move to Resource?
-	Category       string `json:"category"`
-	IsSystem       string `json:"isSystem"`
-	Description    string `json:"description"`
-	Version        string `json:"version"`
-	DefaultVersion string `json:"defaultVersion"`
-	//UpgradeVersionLinks map[string]string `json:"upgradeVersionLinks"`
-	//Files               map[string]string `json:"files"`
-	//Questions                        []Question        `json:"questions"`
-	Path                  string `json:"path"`
+	Catalog               string `json:"catalogId"`
+	EnvironmentId         string `json:"environmentId"`
+	Template              string `json:"template"`
+	Revision              int    `json:"revision"`
+	Version               string `json:"version"`
 	MinimumRancherVersion string `json:"minimumRancherVersion"`
-	//TemplateVersionRancherVersion    map[string]string
-	//TemplateVersionRancherVersionGte map[string]string
-	Maintainer string `json:"maintainer"`
-	License    string `json:"license"`
-	ProjectURL string `json:"projectURL"`
-	//Output                           Output                 `json:"output" yaml:"output,omitempty"`
-	TemplateBase string `json:"templateBase"`
-	//Labels                map[string]string      `json:"labels"`
-	UpgradeFrom string `json:"upgradeFrom"`
-	//Bindings              map[string]interface{} `json:"bindings"`
 	MaximumRancherVersion string `json:"maximumRancherVersion"`
+	UpgradeFrom           string `json:"upgradeFrom"`
 
-	// TODO
-	//	FolderName     string `json:"revision"`
 	// TODO move to model
 	Files     []File
 	Questions []Question

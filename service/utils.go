@@ -43,17 +43,6 @@ func templateId(template model.Template) string {
 	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Base, template.FolderName)
 }
 
-// TODO: is this really needed?
-func addTemplateFieldsToVersion(version *model.Version, template *model.Template) *model.Version {
-	version.Category = template.Category
-	version.IsSystem = template.IsSystem
-	version.Description = template.Description
-	version.DefaultVersion = template.DefaultVersion
-	version.Path = template.Path
-	// TODO: finish
-	return version
-}
-
 func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version) *model.TemplateResource {
 	templateId := templateId(template)
 
@@ -117,7 +106,7 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 			Type:  "templateVersion",
 			Links: links,
 		},
-		Version:   *addTemplateFieldsToVersion(&version, &template),
+		Version:   version,
 		Bindings:  bindings,
 		Files:     filesMap,
 		Questions: questions,

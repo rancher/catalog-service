@@ -58,5 +58,3 @@ def test_v2_syntax(client):
                 str(revision)
         response = requests.get(url)
         assert response.status_code == 200
-        resp = response.json()
-        assert resp['description'] is not None
