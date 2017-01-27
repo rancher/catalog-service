@@ -9,10 +9,5 @@ SUFFIX=""
 
 cd $(dirname $0)/../package
 
-TAG=${TAG:-${VERSION}${SUFFIX}}
-REPO=${REPO:-rancher}
-
-cp ../bin/catalog-service .
-docker build -t ${REPO}/catalog-service:${TAG} .
-
-echo Built ${REPO}/catalog-service:${TAG}
+mkdir -p dist/artifacts
+tar cvJf dist/artifacts/$(basename $BIN)${SUFFIX}.tar.xz -C $(dirname $BIN) .
