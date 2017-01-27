@@ -20,6 +20,7 @@ var (
 	port            = flag.Int("port", 8088, "HTTP listen port")
 	cacheRoot       = flag.String("cache-root", "./cache", "Cache root")
 	configFile      = flag.String("configFile", "./repo.json", "Config file")
+	refresh         = flag.Bool("refresh", false, "Refresh and exit")
 )
 
 func main() {
@@ -30,6 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// TODO: add a flag for this
 	db, err := gorm.Open("sqlite3", "test.db")
 	if err != nil {
 		log.Fatal(err)
@@ -47,6 +49,10 @@ func main() {
 	}
 	if err = m.RefreshAll(); err != nil {
 		log.Fatal(err)
+	}
+
+	if *refresh {
+		return
 	}
 
 	log.Infof("Starting Catalog Service on port %d", *port)

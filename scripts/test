@@ -3,6 +3,8 @@ set -e
 
 cd $(dirname $0)/..
 
+./scripts/git-setup
+
 echo Running tests
 
 PACKAGES=". $(find -name '*.go' | xargs -I{} dirname {} |  cut -f2 -d/ | sort -u | grep -Ev '(^\.$|.git|.trash-cache|vendor|bin)' | sed -e 's!^!./!' -e 's!$!/...!')"
@@ -10,7 +12,7 @@ PACKAGES=". $(find -name '*.go' | xargs -I{} dirname {} |  cut -f2 -d/ | sort -u
 [ "${ARCH}" == "amd64" ] && RACE=-race
 go test ${RACE} -cover -tags=test ${PACKAGES}
 
-./bin/catalog-service -configFile scripts/test-repo.json -port 8088 &
+./bin/rancher-catalog-service -configFile scripts/test-repo.json -port 8088 &
 trap "kill $!" exit
 cd integration
 tox -e flake8,py27

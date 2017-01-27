@@ -20,13 +20,13 @@ const (
 
 func getEnvironmentId(r *http.Request) (string, error) {
 	fmt.Println("Environment header: ", r.Header.Get(environmentIdHeader))
-	// TODO
 	return "e1", nil
-	environment := r.Header.Get(environmentIdHeader)
+	// TODO
+	/*environment := r.Header.Get(environmentIdHeader)
 	if environment == "" {
 		return "", fmt.Errorf("Request is missing environment header %s", environment)
 	}
-	return environment, nil
+	return environment, nil*/
 }
 
 func ReturnHTTPError(w http.ResponseWriter, r *http.Request, httpStatus int, err error) {

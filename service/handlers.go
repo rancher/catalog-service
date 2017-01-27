@@ -120,6 +120,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request) {
 		catalog = r.URL.Query().Get("catalog")
 	}
 	category := r.URL.Query().Get("category")
+	//categoryNe := r.URL.Query().Get("category_ne")
 
 	/*templateBaseEq := r.URL.Query().Get("templateBase_eq")
 	templateBaseNe := r.URL.Query().Get("templateBase_ne")

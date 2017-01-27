@@ -38,8 +38,9 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 			}
 			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
+				// TODO
 				return nil
-				return err
+				//return err
 			}
 			//var templateConfig TemplateConfig
 			var template model.Template
@@ -62,8 +63,9 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 			}
 			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
+				// TODO
 				return nil
-				return err
+				//return err
 			}
 			if _, ok := templateIndex[dir]; !ok {
 				templateIndex[dir] = &model.Template{}
@@ -81,8 +83,9 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 			fmt.Println(templateFolderName, revision)
 			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
+				// TODO
 				return nil
-				return err
+				//return err
 			}
 			if _, ok := versionsIndex[dir]; !ok {
 				versionsIndex[dir] = &model.Version{}

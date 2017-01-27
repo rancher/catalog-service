@@ -19,7 +19,7 @@ type Template struct {
 	UpgradeFrom string `json:"upgradeFrom"`
 
 	// TODO
-	FolderName    string `json:"revision"`
+	FolderName    string `json:"folderName"`
 	Catalog       string `json:"catalogId"`
 	EnvironmentId string `json:"environmentId"`
 	//Prefix        string `json:"prefix"`
