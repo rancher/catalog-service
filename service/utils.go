@@ -88,14 +88,16 @@ func catalogResource(catalog model.Catalog) *model.CatalogResource {
 	}
 }
 
-func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version) *model.TemplateResource {
+func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version, rancherVersion string) *model.TemplateResource {
 	templateId := generateTemplateId(template)
 
 	versionLinks := map[string]string{}
 	for _, version := range versions {
-		route := generateVersionId(template, version)
-		link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
-		versionLinks[version.Version] = URLEncoded(link)
+		if rancherVersion == "" || utils.VersionBetween(version.MinimumRancherVersion, rancherVersion, version.MaximumRancherVersion) {
+			route := generateVersionId(template, version)
+			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
+			versionLinks[version.Version] = URLEncoded(link)
+		}
 	}
 
 	links := map[string]string{}
@@ -112,7 +114,7 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 	}
 }
 
-func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version, versions []model.Version, files []model.File) (*model.TemplateVersionResource, error) {
+func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version, versions []model.Version, files []model.File, rancherVersion string) (*model.TemplateVersionResource, error) {
 	templateId := generateTemplateId(template)
 	versionId := generateVersionId(template, version)
 
@@ -147,7 +149,7 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 
 	upgradeVersionLinks := map[string]string{}
 	for _, otherVersion := range versions {
-		if utils.VersionGreaterThan(otherVersion.Version, version.Version) {
+		if utils.VersionGreaterThan(otherVersion.Version, version.Version) && utils.VersionBetween(otherVersion.MinimumRancherVersion, rancherVersion, otherVersion.MaximumRancherVersion) {
 			route := generateVersionId(template, otherVersion)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 			upgradeVersionLinks[otherVersion.Version] = URLEncoded(link)

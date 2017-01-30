@@ -121,10 +121,10 @@ func getTemplates(w http.ResponseWriter, r *http.Request) {
 	}
 	category := r.URL.Query().Get("category")
 	//categoryNe := r.URL.Query().Get("category_ne")
+	rancherVersion := r.URL.Query().Get("rancherVersion")
 
 	/*templateBaseEq := r.URL.Query().Get("templateBase_eq")
 	templateBaseNe := r.URL.Query().Get("templateBase_ne")
-	minumumRancherVersionLte := r.URL.Query().Get("minumumRancherVersion_lte")
 	maximumRancherVersionGte := r.URL.Query().Get("maximumRancherVersion_gte")*/
 
 	var templates []model.TemplateModel
@@ -158,7 +158,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request) {
 			versions = append(versions, versionModel.Version)
 		}
 
-		resp.Data = append(resp.Data, *templateResource(apiContext, template.Template, versions))
+		resp.Data = append(resp.Data, *templateResource(apiContext, template.Template, versions, rancherVersion))
 	}
 
 	resp.Actions = map[string]string{
@@ -183,6 +183,8 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		ReturnHTTPError(w, r, http.StatusBadRequest, errors.New("Missing paramater catalog_template_version"))
 		return
 	}
+
+	rancherVersion := r.URL.Query().Get("rancherVersion")
 
 	catalogName, templateName, templateBase, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
 	if revisionNumber == -1 {
@@ -215,7 +217,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		for _, versionModel := range versionModels {
 			versions = append(versions, versionModel.Version)
 		}
-		apiContext.Write(templateResource(apiContext, templateModel.Template, versions))
+		apiContext.Write(templateResource(apiContext, templateModel.Template, versions, rancherVersion))
 	} else {
 		// Return template version
 		var template model.TemplateModel
@@ -267,7 +269,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 		for _, versionModel := range versionModels {
 			versions = append(versions, versionModel.Version)
 		}
-		versionResource, err := versionResource(apiContext, template.Template, version.Version, versions, files)
+		versionResource, err := versionResource(apiContext, template.Template, version.Version, versions, files, rancherVersion)
 		if err != nil {
 			ReturnHTTPError(w, r, http.StatusBadRequest, err)
 			return
@@ -277,7 +279,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCatalogTemplates(w http.ResponseWriter, r *http.Request) {
-	apiContext := api.GetApiContext(r)
+	/*apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 
 	environmentId, err := getEnvironmentId(r)
@@ -324,7 +326,7 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request) {
 		"refresh": api.GetApiContext(r).UrlBuilder.ReferenceByIdLink("template", "") + "?action=refresh",
 	}
 
-	apiContext.Write(&resp)
+	apiContext.Write(&resp)*/
 
 }
 

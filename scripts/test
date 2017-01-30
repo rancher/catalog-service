@@ -3,7 +3,7 @@ set -e
 
 cd $(dirname $0)/..
 
-./scripts/git-setup
+./scripts/test-warm
 
 echo Running tests
 

@@ -70,7 +70,21 @@ def test_get_template(client):
     assert response.status_code == 200
     resp = response.json()
     assert resp['folderName'] == 'k8s'
-    # assert len(resp['versionLinks']) == 12
+
+
+def test_template_version_links(client):
+    url = 'http://localhost:8088/v1-catalog/templates/t:many-versions'
+    response = requests.get(url)
+    assert response.status_code == 200
+    resp = response.json()
+    assert len(resp['versionLinks']) == 14
+
+    url = 'http://localhost:8088/v1-catalog/templates/t:many-versions' + \
+            '?rancherVersion=v1.0.1'
+    response = requests.get(url)
+    assert response.status_code == 200
+    resp = response.json()
+    assert len(resp['versionLinks']) == 9
 
 
 def test_template_icon(client):
@@ -95,6 +109,14 @@ def test_template_bindings(client):
     resp = response.json()
     bindings = resp['bindings']
     assert bindings is not None
+
+
+def test_refresh(client):
+    url = 'http://localhost:8088/v1-catalog/templates/t:many-versions:14'
+    response = requests.get(url)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['version'] == '1.0.14'
 
 
 def test_refresh_no_changes(client):
@@ -126,7 +148,15 @@ def test_upgrade_links(client):
     response = requests.get(url)
     assert response.status_code == 200
     resp = response.json()
-    print resp
     upgradeLinks = resp['upgradeVersionLinks']
     assert upgradeLinks is not None
     assert len(upgradeLinks) == 11
+
+    url = 'http://localhost:8088/v1-catalog/templates/t:many-versions:2' + \
+            '?rancherVersion=v1.0.1'
+    response = requests.get(url)
+    assert response.status_code == 200
+    resp = response.json()
+    upgradeLinks = resp['upgradeVersionLinks']
+    assert upgradeLinks is not None
+    assert len(upgradeLinks) == 7

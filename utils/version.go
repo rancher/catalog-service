@@ -6,7 +6,20 @@ import (
 	"strings"
 )
 
+func VersionBetween(a, b, c string) bool {
+	if a == "" && c == "" {
+		return true
+	} else if a == "" {
+		return !VersionGreaterThan(b, c)
+	} else if c == "" {
+		return !VersionGreaterThan(a, b)
+	}
+	return !VersionGreaterThan(a, b) && !VersionGreaterThan(b, c)
+}
+
 func VersionGreaterThan(a, b string) bool {
+	re := regexp.MustCompile("[0-9]+")
+
 	a = strings.TrimLeft(a, "v")
 	b = strings.TrimLeft(b, "v")
 
@@ -17,8 +30,23 @@ func VersionGreaterThan(a, b string) bool {
 		if i == len(bSplit) {
 			return true
 		}
-		if pieceGreaterThan(aSplit[i], bSplit[i]) {
+		aMatch := re.FindString(aSplit[i])
+		bMatch := re.FindString(bSplit[i])
+		if aMatch == "" || bMatch == "" {
+			if strings.Compare(aSplit[i], bSplit[i]) > 0 {
+				return true
+			}
+			if strings.Compare(bSplit[i], aSplit[i]) > 0 {
+				return false
+			}
+		}
+		aNum, _ := strconv.Atoi(aMatch)
+		bNum, _ := strconv.Atoi(bMatch)
+		if aNum > bNum {
 			return true
+		}
+		if bNum > aNum {
+			return false
 		}
 	}
 
@@ -33,16 +61,4 @@ func periodDashSplit(s string) []string {
 		}
 		return false
 	})
-}
-
-func pieceGreaterThan(a, b string) bool {
-	re := regexp.MustCompile("[0-9]+")
-	aMatch := re.FindString(a)
-	bMatch := re.FindString(b)
-	if aMatch == "" || bMatch == "" {
-		return strings.Compare(a, b) > 0
-	}
-	aNum, _ := strconv.Atoi(aMatch)
-	bNum, _ := strconv.Atoi(bMatch)
-	return aNum > bNum
 }

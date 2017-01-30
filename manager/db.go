@@ -27,6 +27,7 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ve
 		Catalog: catalog,
 	}
 
+	// TODO: use FirstOrInit or FirstOrCreate
 	if err := tx.Where(&catalogQuery).Delete(&model.CatalogModel{}).Error; err != nil {
 		tx.Rollback()
 		return err

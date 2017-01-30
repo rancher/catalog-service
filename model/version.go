@@ -13,8 +13,8 @@ type Version struct {
 	Template              string `json:"template"`
 	Revision              int    `json:"revision"`
 	Version               string `json:"version"`
-	MinimumRancherVersion string `json:"minimumRancherVersion"`
-	MaximumRancherVersion string `json:"maximumRancherVersion"`
+	MinimumRancherVersion string `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
+	MaximumRancherVersion string `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
 
 	// TODO move to model
 	Files     []File
