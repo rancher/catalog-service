@@ -182,7 +182,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCatalogTemplates(w http.ResponseWriter, r *http.Request) {
-	/*apiContext := api.GetApiContext(r)
+	apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 
 	environmentId, err := getEnvironmentId(r)
@@ -197,39 +197,24 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var templates []model.TemplateModel
-	db.Find(&templates, &model.TemplateModel{
-		Template: model.Template{
-			Catalog:       catalogName,
-			EnvironmentId: environmentId,
-		},
-	})
+	category := r.URL.Query().Get("category")
+	//categoryNe := r.URL.Query().Get("category_ne")
+	rancherVersion := r.URL.Query().Get("rancherVersion")
 
+	templates := model.LookupTemplates(db, environmentId, catalogName, category)
+
+	// TODO: this is duplicated
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		// TODO: this is duplicated
-		// TODO: shouldn't need to lookup all versions for this
-		var versionModels []model.VersionModel
-		db.Find(&versionModels, &model.VersionModel{
-			Version: model.Version{
-				Template:      template.FolderName,
-				EnvironmentId: environmentId,
-			},
-		})
-
-		var versions []model.Version
-		for _, versionModel := range versionModels {
-			versions = append(versions, versionModel.Version)
-		}
-
-		resp.Data = append(resp.Data, *templateResource(apiContext, template.Template, versions))
+		versions := model.LookupVersions(db, environmentId, catalogName, template.FolderName)
+		resp.Data = append(resp.Data, *templateResource(apiContext, template, versions, rancherVersion))
 	}
 
 	resp.Actions = map[string]string{
 		"refresh": api.GetApiContext(r).UrlBuilder.ReferenceByIdLink("template", "") + "?action=refresh",
 	}
 
-	apiContext.Write(&resp)*/
+	apiContext.Write(&resp)
 
 }
 

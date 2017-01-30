@@ -1,8 +1,6 @@
 package model
 
-import (
-	"github.com/jinzhu/gorm"
-)
+import "github.com/jinzhu/gorm"
 
 type File struct {
 	Catalog       string `json:"catalogId"`
@@ -21,9 +19,7 @@ func LookupFiles(db *gorm.DB, catalog, environmentId string, versionId uint) []F
 	var fileModels []FileModel
 	db.Where(&FileModel{
 		File: File{
-			Catalog:       catalog,
-			EnvironmentId: environmentId,
-			VersionID:     versionId,
+			VersionID: versionId,
 		},
 	}).Find(&fileModels)
 	var files []File
