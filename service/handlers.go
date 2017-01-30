@@ -23,22 +23,16 @@ func getCatalogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var catalogs []model.CatalogModel
-	db.Find(&catalogs, &model.CatalogModel{
-		Catalog: model.Catalog{
-			EnvironmentId: environmentId,
-		},
-	})
+	catalogs := model.LookupCatalogs(db, environmentId)
 
 	resp := model.CatalogCollection{}
 	for _, catalog := range catalogs {
 		resp.Data = append(resp.Data, model.CatalogResource{
-			// TODO: better id
 			Resource: client.Resource{
 				Id:   catalog.Name,
 				Type: "catalog",
 			},
-			Catalog: catalog.Catalog,
+			Catalog: catalog,
 		})
 	}
 
@@ -57,15 +51,9 @@ func getCatalog(w http.ResponseWriter, r *http.Request) {
 
 	// TODO error checking
 	catalogName := vars["catalog"]
-	var catalog model.CatalogModel
-	db.Where(&model.CatalogModel{
-		Catalog: model.Catalog{
-			Name:          catalogName,
-			EnvironmentId: environmentId,
-		},
-	}).First(&catalog)
+	catalog := model.LookupCatalog(db, environmentId, catalogName)
 
-	apiContext.Write(catalogResource(catalog.Catalog))
+	apiContext.Write(catalogResource(*catalog))
 }
 
 func createCatalog(w http.ResponseWriter, r *http.Request) {
@@ -123,42 +111,12 @@ func getTemplates(w http.ResponseWriter, r *http.Request) {
 	//categoryNe := r.URL.Query().Get("category_ne")
 	rancherVersion := r.URL.Query().Get("rancherVersion")
 
-	/*templateBaseEq := r.URL.Query().Get("templateBase_eq")
-	templateBaseNe := r.URL.Query().Get("templateBase_ne")
-	maximumRancherVersionGte := r.URL.Query().Get("maximumRancherVersion_gte")*/
-
-	var templates []model.TemplateModel
-	query := model.TemplateModel{
-		Template: model.Template{
-			EnvironmentId: environmentId,
-		},
-	}
-	if catalog != "" {
-		query.Catalog = catalog
-	}
-	if category != "" {
-		query.Category = category
-	}
-	db.Find(&templates, &query)
+	templates := model.LookupTemplates(db, environmentId, catalog, category)
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		// TODO: this is duplicated
-		// TODO: shouldn't need to lookup all versions for this
-		var versionModels []model.VersionModel
-		db.Find(&versionModels, &model.VersionModel{
-			Version: model.Version{
-				Template:      template.FolderName,
-				EnvironmentId: environmentId,
-			},
-		})
-
-		var versions []model.Version
-		for _, versionModel := range versionModels {
-			versions = append(versions, versionModel.Version)
-		}
-
-		resp.Data = append(resp.Data, *templateResource(apiContext, template.Template, versions, rancherVersion))
+		versions := model.LookupVersions(db, environmentId, catalog, template.FolderName)
+		resp.Data = append(resp.Data, *templateResource(apiContext, template, versions, rancherVersion))
 	}
 
 	resp.Actions = map[string]string{
@@ -189,87 +147,32 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 	catalogName, templateName, templateBase, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
 	if revisionNumber == -1 {
 		// Return template
-		var templateModel model.TemplateModel
-		var versionModels []model.VersionModel
-		db.Where(&model.VersionModel{
-			Version: model.Version{
-				Catalog:       catalogName,
-				Template:      templateName,
-				EnvironmentId: environmentId,
-			},
-		}).Find(&versionModels)
-		db.Where(&model.TemplateModel{
-			Template: model.Template{
-				Catalog:       catalogName,
-				FolderName:    templateName,
-				EnvironmentId: environmentId,
-				Base:          templateBase,
-			},
-		}).First(&templateModel)
+		template := model.LookupTemplate(db, environmentId, catalogName, templateName, templateBase)
 
 		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
-			iconReader := bytes.NewReader(templateModel.Icon)
-			http.ServeContent(w, r, templateModel.IconFilename, time.Time{}, iconReader)
+			iconReader := bytes.NewReader(template.Icon)
+			http.ServeContent(w, r, template.IconFilename, time.Time{}, iconReader)
 			return
 		}
 
-		var versions []model.Version
-		for _, versionModel := range versionModels {
-			versions = append(versions, versionModel.Version)
-		}
-		apiContext.Write(templateResource(apiContext, templateModel.Template, versions, rancherVersion))
+		versions := model.LookupVersions(db, environmentId, catalogName, templateName)
+
+		apiContext.Write(templateResource(apiContext, *template, versions, rancherVersion))
 	} else {
 		// Return template version
-		var template model.TemplateModel
-		var version model.VersionModel
-		var versionModels []model.VersionModel
-		db.Where(&model.TemplateModel{
-			Template: model.Template{
-				Catalog:       catalogName,
-				FolderName:    templateName,
-				EnvironmentId: environmentId,
-				Base:          templateBase,
-			},
-		}).First(&template)
-		db.Where(&model.VersionModel{
-			Version: model.Version{
-				Catalog:       catalogName,
-				Template:      templateName,
-				EnvironmentId: environmentId,
-			},
-		}).Find(&versionModels)
-		db.Where(&model.VersionModel{
-			Version: model.Version{
-				Catalog:       catalogName,
-				Template:      templateName,
-				EnvironmentId: environmentId,
-				Revision:      revisionNumber,
-			},
-		}).First(&version)
+		template := model.LookupTemplate(db, environmentId, catalogName, templateName, templateBase)
+		versionModel := model.LookupVersionModel(db, environmentId, catalogName, templateName, revisionNumber)
+		versions := model.LookupVersions(db, environmentId, catalogName, templateName)
 
+		// TODO: version READMEs
 		if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
-			w.Write([]byte(version.Readme))
+			w.Write([]byte(versionModel.Readme))
 			return
 		}
 
-		var fileModels []model.FileModel
-		db.Where(&model.FileModel{
-			File: model.File{
-				Catalog:       catalogName,
-				EnvironmentId: environmentId,
-				VersionID:     version.ID,
-			},
-		}).Find(&fileModels)
-		var files []model.File
-		for _, fileModel := range fileModels {
-			files = append(files, fileModel.File)
-		}
+		files := model.LookupFiles(db, environmentId, catalogName, versionModel.ID)
 
-		var versions []model.Version
-		for _, versionModel := range versionModels {
-			versions = append(versions, versionModel.Version)
-		}
-		versionResource, err := versionResource(apiContext, template.Template, version.Version, versions, files, rancherVersion)
+		versionResource, err := versionResource(apiContext, *template, versionModel.Version, versions, files, rancherVersion)
 		if err != nil {
 			ReturnHTTPError(w, r, http.StatusBadRequest, err)
 			return

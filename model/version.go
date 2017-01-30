@@ -36,3 +36,32 @@ type TemplateVersionResource struct {
 	Questions           []Question          `json:"questions"`
 	UpgradeVersionLinks map[string]string   `json:"upgradeVersionLinks"`
 }
+
+// TODO: needs a base filter
+// TODO: chekc if environmentId is ""?
+func LookupVersionModel(db *gorm.DB, environmentId, catalog, template string, revision int) *VersionModel {
+	var versionModel VersionModel
+	db.Where(&VersionModel{
+		Version: Version{
+			Catalog:  catalog,
+			Template: template,
+			Revision: revision,
+		},
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&versionModel)
+	return &versionModel
+}
+
+func LookupVersions(db *gorm.DB, environmentId, catalog, template string) []Version {
+	var versionModels []VersionModel
+	db.Where(&VersionModel{
+		Version: Version{
+			Catalog:  catalog,
+			Template: template,
+		},
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&versionModels)
+	var versions []Version
+	for _, versionModel := range versionModels {
+		versions = append(versions, versionModel.Version)
+	}
+	return versions
+}

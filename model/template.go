@@ -44,3 +44,29 @@ type TemplateCollection struct {
 	client.Collection
 	Data []TemplateResource `json:"data,omitempty"`
 }
+
+func LookupTemplate(db *gorm.DB, environmentId, catalog, folderName, base string) *Template {
+	var templateModel TemplateModel
+	db.Where(&TemplateModel{
+		Template: Template{
+			Catalog:    catalog,
+			FolderName: folderName,
+			Base:       base,
+		},
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&templateModel)
+	return &templateModel.Template
+}
+
+func LookupTemplates(db *gorm.DB, environmentId, catalog, category string) []Template {
+	var templateModels []TemplateModel
+	db.Where(&TemplateModel{
+		Template: Template{
+			Catalog: catalog,
+		},
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&templateModels)
+	var templates []Template
+	for _, templateModel := range templateModels {
+		templates = append(templates, templateModel.Template)
+	}
+	return templates
+}

@@ -38,3 +38,23 @@ type CatalogCollection struct {
 	client.Collection
 	Data []CatalogResource `json:"data,omitempty"`
 }
+
+func LookupCatalog(db *gorm.DB, environmentId, name string) *Catalog {
+	var catalogModel CatalogModel
+	db.Where(&CatalogModel{
+		Catalog: Catalog{
+			Name: name,
+		},
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&catalogModel)
+	return &catalogModel.Catalog
+}
+
+func LookupCatalogs(db *gorm.DB, environmentId string) []Catalog {
+	var catalogModels []CatalogModel
+	db.Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&catalogModels)
+	var catalogs []Catalog
+	for _, catalogModel := range catalogModels {
+		catalogs = append(catalogs, catalogModel.Catalog)
+	}
+	return catalogs
+}
