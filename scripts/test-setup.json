@@ -1,8 +1,7 @@
 {
   "catalogs": {
     "t2": {
-      "url": "/tmp/test-catalog",
-      "environmentId": "e1"
+      "url": "/tmp/test-catalog"
     }
   }
 }

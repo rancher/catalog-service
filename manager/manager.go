@@ -1,8 +1,6 @@
 package manager
 
 import (
-	"sync"
-
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/catalog-service/model"
 )
@@ -11,41 +9,20 @@ import (
 type CatalogConfig struct {
 	URL    string
 	Branch string
-	// TODO: remove this
-	EnvironmentId string
 }
 
 type Manager struct {
 	cacheRoot string
-	diskLocks map[string]*sync.Mutex
-	//catalogURLs []string
-	config map[string]CatalogConfig
-	db     *gorm.DB
+	config    map[string]CatalogConfig
+	db        *gorm.DB
 }
 
-//func NewManager(cacheRoot string, catalogURLs []string) *Manager {
 func NewManager(cacheRoot string, config map[string]CatalogConfig, db *gorm.DB) *Manager {
 	return &Manager{
 		cacheRoot: cacheRoot,
 		config:    config,
 		db:        db,
 	}
-}
-
-func (m *Manager) CreateConfigCatalogs() error {
-	for name, config := range m.config {
-		if err := m.db.Create(&model.CatalogModel{
-			Catalog: model.Catalog{
-				Name: name,
-				URL:  config.URL,
-				// TODO
-				EnvironmentId: "e1",
-			},
-		}).Error; err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (m *Manager) RefreshAll() error {

@@ -95,6 +95,8 @@ func createCatalog(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteCatalog(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
 	environmentId, err := getEnvironmentId(r)
 	if err != nil {
 		ReturnHTTPError(w, r, http.StatusBadRequest, err)
@@ -102,7 +104,7 @@ func deleteCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO error checking
-	catalogName := vars["catalog"]
+	name := vars["catalog"]
 
 	model.DeleteCatalog(db, environmentId, name)
 
@@ -234,8 +236,12 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request) {
 }
 
 func refreshCatalog(w http.ResponseWriter, r *http.Request) {
-	// TODO: should not refresh across all environments
-	if err := m.RefreshAll(); err != nil {
+	environmentId, err := getEnvironmentId(r)
+	if err != nil {
+		ReturnHTTPError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	if err := m.Refresh(environmentId); err != nil {
 		ReturnHTTPError(w, r, http.StatusBadRequest, err)
 		return
 	}

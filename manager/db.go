@@ -2,6 +2,22 @@ package manager
 
 import "github.com/rancher/catalog-service/model"
 
+func (m *Manager) CreateConfigCatalogs() error {
+	for name, config := range m.config {
+		var catalogModel model.CatalogModel
+		if err := m.db.FirstOrCreate(&catalogModel, &model.CatalogModel{
+			Catalog: model.Catalog{
+				Name:          name,
+				URL:           config.URL,
+				EnvironmentId: "global",
+			},
+		}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *Manager) lookupCatalogs(environmentId string) ([]model.Catalog, error) {
 	var catalogModels []model.CatalogModel
 	if environmentId == "" {

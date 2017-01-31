@@ -4,14 +4,24 @@ import requests
 from wait_for import wait_for
 
 
+def headers(environment_id):
+    return {
+        'Accept': 'application/json',
+        'x-api-project-id': environment_id
+    }
+
+
+DEFAULT_HEADERS = headers('e1')
+
+
 @pytest.fixture
 def client():
     url = 'http://localhost:8088/v1-catalog/schemas'
-    catalogs = cattle.from_env(url=url).list_catalog()
+    catalogs = cattle.from_env(url=url, headers=DEFAULT_HEADERS).list_catalog()
     wait_for(
         lambda: len(catalogs) > 0
     )
-    return cattle.from_env(url=url)
+    return cattle.from_env(url=url, headers=DEFAULT_HEADERS)
 
 
 def test_catalog_list(client):
@@ -24,7 +34,7 @@ def test_catalog_list(client):
 
 def test_get_catalog(client):
     url = 'http://localhost:8088/v1-catalog/catalogs/t'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     assert resp['name'] == 't'
@@ -41,14 +51,14 @@ def test_create_catalog(client):
     response = requests.post(url, data={
         'name': 'created',
         'url': 'https://github.com/rancher/community-catalog',
-    })
+    }, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     assert resp['name'] == 'created'
     assert resp['url'] == 'https://github.com/rancher/community-catalog'
 
     url = 'http://localhost:8088/v1-catalog/templates?action=refresh'
-    response = requests.post(url)
+    response = requests.post(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 204
 
     templates = client.list_template()
@@ -64,7 +74,7 @@ def test_template_list(client):
 
 def test_get_template(client):
     url = 'http://localhost:8088/v1-catalog/templates/t:k8s'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     assert resp['folderName'] == 'k8s'
@@ -72,14 +82,14 @@ def test_get_template(client):
 
 def test_template_version_links(client):
     url = 'http://localhost:8088/v1-catalog/templates/t:many-versions'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     assert len(resp['versionLinks']) == 14
 
     url = 'http://localhost:8088/v1-catalog/templates/t:many-versions' + \
-            '?rancherVersion=v1.0.1'
-    response = requests.get(url)
+        '?rancherVersion=v1.0.1'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     assert len(resp['versionLinks']) == 9
@@ -87,14 +97,14 @@ def test_template_version_links(client):
 
 def test_template_icon(client):
     url = 'http://localhost:8088/v1-catalog/templates/t:nfs-server?image'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     assert len(response.content) == 1139
 
 
 def test_get_template_version(client):
     url = 'http://localhost:8088/v1-catalog/templates/t:k8s:1'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     assert resp['revision'] == 1
@@ -102,19 +112,19 @@ def test_get_template_version(client):
 
 def test_template_bindings(client):
     url = 'http://localhost:8088/v1-catalog/templates/t:k8s:1'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     bindings = resp['bindings']
     assert bindings is not None
 
 
-def test_refresh(client):
-    url = 'http://localhost:8088/v1-catalog/templates/t:many-versions:14'
-    response = requests.get(url)
-    assert response.status_code == 200
-    resp = response.json()
-    assert resp['version'] == '1.0.14'
+# def test_refresh(client):
+#     url = 'http://localhost:8088/v1-catalog/templates/t:many-versions:14'
+#     response = requests.get(url, headers=DEFAULT_HEADERS)
+#     assert response.status_code == 200
+#     resp = response.json()
+#     assert resp['version'] == '1.0.14'
 
 
 def test_refresh_no_changes(client):
@@ -124,7 +134,7 @@ def test_refresh_no_changes(client):
     assert len(original_templates) > 0
 
     url = 'http://localhost:8088/v1-catalog/templates?action=refresh'
-    response = requests.post(url)
+    response = requests.post(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 204
 
     catalogs = client.list_catalog()
@@ -137,13 +147,13 @@ def test_v2_syntax(client):
     for revision in [0, 1, 2, 3]:
         url = 'http://localhost:8088/v1-catalog/templates/t:v2:' + \
                 str(revision)
-        response = requests.get(url)
+        response = requests.get(url, headers=DEFAULT_HEADERS)
         assert response.status_code == 200
 
 
 def test_upgrade_links(client):
     url = 'http://localhost:8088/v1-catalog/templates/t:test-upgrade-links:1'
-    response = requests.get(url)
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     upgradeLinks = resp['upgradeVersionLinks']
@@ -151,8 +161,8 @@ def test_upgrade_links(client):
     assert len(upgradeLinks) == 11
 
     url = 'http://localhost:8088/v1-catalog/templates/t:many-versions:2' + \
-            '?rancherVersion=v1.0.1'
-    response = requests.get(url)
+        '?rancherVersion=v1.0.1'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
     upgradeLinks = resp['upgradeVersionLinks']

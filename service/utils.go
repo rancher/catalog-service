@@ -19,18 +19,14 @@ const (
 )
 
 func getEnvironmentId(r *http.Request) (string, error) {
-	return "e1", nil
-	// TODO
-	/*environment := r.Header.Get(environmentIdHeader)
+	environment := r.Header.Get(environmentIdHeader)
 	if environment == "" {
 		return "", fmt.Errorf("Request is missing environment header %s", environment)
 	}
-	return environment, nil*/
+	return environment, nil
 }
 
 func ReturnHTTPError(w http.ResponseWriter, r *http.Request, httpStatus int, err error) {
-
-	fmt.Println(err)
 	w.WriteHeader(httpStatus)
 
 	catalogError := model.CatalogError{
@@ -41,7 +37,6 @@ func ReturnHTTPError(w http.ResponseWriter, r *http.Request, httpStatus int, err
 		Message: err.Error(),
 	}
 
-	api.CreateApiContext(w, r, schemas)
 	api.GetApiContext(r).Write(&catalogError)
 }
 

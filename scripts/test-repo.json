@@ -1,16 +1,13 @@
 {
   "catalogs": {
     "t": {
-      "url": "https://github.com/joshwget/test-catalog",
-      "environmentId": "e1"
+      "url": "https://github.com/joshwget/test-catalog"
     },
     "t2": {
-      "url": "/tmp/test-catalog",
-      "environmentId": "e1"
+      "url": "/tmp/test-catalog"
     },
     "library": {
-      "url": "https://github.com/rancher/rancher-catalog",
-      "environmentId": "e1"
+      "url": "https://github.com/rancher/rancher-catalog"
     }
   }
 }

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
@@ -21,7 +22,7 @@ var (
 	port            = flag.Int("port", 8088, "HTTP listen port")
 	cacheRoot       = flag.String("cache-root", "./cache", "Cache root")
 	configFile      = flag.String("configFile", "./repo.json", "Config file")
-	refresh         = flag.Bool("refresh", false, "Refresh and exit")
+	refreshOnly     = flag.Bool("refresh", false, "Refresh and exit")
 )
 
 func main() {
@@ -44,20 +45,9 @@ func main() {
 	db.AutoMigrate(&model.VersionModel{})
 	db.AutoMigrate(&model.FileModel{})
 
-	go func() {
-		m := manager.NewManager(*cacheRoot, config, db)
-		if err = m.CreateConfigCatalogs(); err != nil {
-			log.Fatal(err)
-		}
-		if err = m.RefreshAll(); err != nil {
-			log.Fatal(err)
-		}
-		if *refresh {
-			os.Exit(0)
-		}
-	}()
-
-	if *refresh {
+	m := manager.NewManager(*cacheRoot, config, db)
+	go refresh(m)
+	if *refreshOnly {
 		select {}
 	}
 
@@ -80,4 +70,20 @@ func readConfig(configFile string) (map[string]manager.CatalogConfig, error) {
 		return nil, err
 	}
 	return config["catalogs"], nil
+}
+
+func refresh(m *manager.Manager) {
+	if err := m.CreateConfigCatalogs(); err != nil {
+		log.Fatal(err)
+	}
+	if err := m.RefreshAll(); err != nil {
+		log.Fatal(err)
+	}
+	if *refreshOnly {
+		os.Exit(0)
+	}
+	for range time.Tick(time.Duration(*refreshInterval) * time.Second) {
+		// TODO: don't want to have refresh running twice at the same time
+		go m.RefreshAll()
+	}
 }
