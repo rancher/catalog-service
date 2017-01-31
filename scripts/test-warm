@@ -3,7 +3,7 @@ set -ex
 
 cd $(dirname $0)/..
 
-git clone https://github.com/joshwget/test-catalog.git /tmp/test-catalog
+git clone https://github.com/rancher/test-catalog.git /tmp/test-catalog
 
 ./bin/rancher-catalog-service -configFile scripts/test-setup.json -refresh
 
