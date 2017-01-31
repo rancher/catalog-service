@@ -94,6 +94,21 @@ func createCatalog(w http.ResponseWriter, r *http.Request) {
 	apiContext.Write(catalogResource(catalogModel.Catalog))
 }
 
+func deleteCatalog(w http.ResponseWriter, r *http.Request) {
+	environmentId, err := getEnvironmentId(r)
+	if err != nil {
+		ReturnHTTPError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// TODO error checking
+	catalogName := vars["catalog"]
+
+	model.DeleteCatalog(db, environmentId, name)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func getTemplates(w http.ResponseWriter, r *http.Request) {
 	apiContext := api.GetApiContext(r)
 

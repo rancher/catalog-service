@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/jinzhu/gorm"
+	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/go-rancher/client"
 )
 
@@ -57,4 +58,22 @@ func LookupCatalogs(db *gorm.DB, environmentId string) []Catalog {
 		catalogs = append(catalogs, catalogModel.Catalog)
 	}
 	return catalogs
+}
+
+// TODO: return error
+func DeleteCatalog(db *gorm.DB, environmentId, name string) *Catalog {
+	tx := m.db.Begin()
+
+	// TODO: delete templates, versions, and files
+	var catalogModel CatalogModel
+	if err := tx.Where(&CatalogModel{
+		Catalog: Catalog{
+			Name:          name,
+			EnvironmentId: environmentId,
+		},
+	}).Delete(&model.CatalogModel{}).Error; err != nil {
+		tx.Rollback()
+	}
+
+	tx.Commit()
 }

@@ -54,6 +54,12 @@ var routes = []Route{
 		createCatalog,
 	},
 	{
+		"DeleteCatalog",
+		"DELETE",
+		"/v1-catalog/catalogs/{catalog}",
+		deleteCatalog,
+	},
+	{
 		"GetCatalog",
 		"GET",
 		"/v1-catalog/catalogs/{catalog}",
