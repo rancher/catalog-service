@@ -23,17 +23,10 @@ func (m *Manager) lookupCatalogs(environmentId string) ([]model.Catalog, error) 
 func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, versions []model.Version) error {
 	tx := m.db.Begin()
 
-	catalogQuery := model.CatalogModel{
+	var catalogModel model.CatalogModel
+	if err := tx.FirstOrCreate(&catalogModel, model.CatalogModel{
 		Catalog: catalog,
-	}
-
-	// TODO: use FirstOrInit or FirstOrCreate
-	if err := tx.Where(&catalogQuery).Delete(&model.CatalogModel{}).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := tx.Create(&catalogQuery).Error; err != nil {
+	}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

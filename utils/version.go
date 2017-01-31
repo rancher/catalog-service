@@ -11,6 +11,8 @@ func VersionBetween(a, b, c string) bool {
 		return true
 	} else if a == "" {
 		return !VersionGreaterThan(b, c)
+	} else if b == "" {
+		return true
 	} else if c == "" {
 		return !VersionGreaterThan(a, b)
 	}

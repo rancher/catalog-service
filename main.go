@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
@@ -43,16 +44,21 @@ func main() {
 	db.AutoMigrate(&model.VersionModel{})
 	db.AutoMigrate(&model.FileModel{})
 
-	m := manager.NewManager(*cacheRoot, config, db)
-	if err = m.CreateConfigCatalogs(); err != nil {
-		log.Fatal(err)
-	}
-	if err = m.RefreshAll(); err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		m := manager.NewManager(*cacheRoot, config, db)
+		if err = m.CreateConfigCatalogs(); err != nil {
+			log.Fatal(err)
+		}
+		if err = m.RefreshAll(); err != nil {
+			log.Fatal(err)
+		}
+		if *refresh {
+			os.Exit(0)
+		}
+	}()
 
 	if *refresh {
-		return
+		select {}
 	}
 
 	log.Infof("Starting Catalog Service on port %d", *port)

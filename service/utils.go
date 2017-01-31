@@ -19,7 +19,6 @@ const (
 )
 
 func getEnvironmentId(r *http.Request) (string, error) {
-	fmt.Println("Environment header: ", r.Header.Get(environmentIdHeader))
 	return "e1", nil
 	// TODO
 	/*environment := r.Header.Get(environmentIdHeader)
@@ -93,7 +92,7 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 
 	versionLinks := map[string]string{}
 	for _, version := range versions {
-		if rancherVersion == "" || utils.VersionBetween(version.MinimumRancherVersion, rancherVersion, version.MaximumRancherVersion) {
+		if utils.VersionBetween(version.MinimumRancherVersion, rancherVersion, version.MaximumRancherVersion) {
 			route := generateVersionId(template, version)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 			versionLinks[version.Version] = URLEncoded(link)

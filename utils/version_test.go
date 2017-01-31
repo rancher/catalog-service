@@ -64,6 +64,10 @@ func TestVersionBetween(t *testing.T) {
 	assert.True(t, VersionBetween("1", "2", "3"))
 	assert.True(t, VersionBetween("1", "2", ""))
 	assert.True(t, VersionBetween("", "2", "3"))
+	assert.True(t, VersionBetween("", "2", ""))
+	assert.True(t, VersionBetween("1", "", ""))
+	assert.True(t, VersionBetween("", "", "3"))
+	assert.True(t, VersionBetween("1", "", "3"))
 
 	assert.True(t, VersionBetween("2", "2", "2"))
 	assert.True(t, VersionBetween("2", "2", ""))

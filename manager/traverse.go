@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -80,7 +79,6 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 				return nil
 			}
 
-			fmt.Println(templateFolderName, revision)
 			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
 				// TODO
