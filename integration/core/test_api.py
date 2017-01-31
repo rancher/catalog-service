@@ -38,7 +38,7 @@ def test_get_catalog(client):
     assert response.status_code == 200
     resp = response.json()
     assert resp['name'] == 't'
-    assert resp['url'] == 'https://github.com/joshwget/test-catalog'
+    assert resp['url'] == 'https://github.com/rancher/test-catalog'
 
 
 def test_create_catalog(client):

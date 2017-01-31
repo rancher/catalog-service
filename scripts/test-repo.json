@@ -1,7 +1,7 @@
 {
   "catalogs": {
     "t": {
-      "url": "https://github.com/joshwget/test-catalog"
+      "url": "https://github.com/rancher/test-catalog"
     },
     "t2": {
       "url": "/tmp/test-catalog"
