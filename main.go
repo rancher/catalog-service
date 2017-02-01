@@ -23,10 +23,17 @@ var (
 	cacheRoot       = flag.String("cache-root", "./cache", "Cache root")
 	configFile      = flag.String("config-file", "./repo.json", "Config file")
 	refreshOnly     = flag.Bool("refresh", false, "Refresh and exit")
+	version         = flag.Bool("v", false, "Print version and exit")
+	VERSION         = ""
 )
 
 func main() {
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("%s version %s\n", os.Args[0], VERSION)
+		os.Exit(0)
+	}
 
 	config, err := readConfig(*configFile)
 	if err != nil {
