@@ -1,13 +1,10 @@
 {
   "catalogs": {
-    "t": {
+    "orig": {
       "url": "https://github.com/rancher/test-catalog"
     },
-    "t2": {
+    "updated": {
       "url": "/tmp/test-catalog"
-    },
-    "library": {
-      "url": "https://github.com/rancher/rancher-catalog"
     }
   }
 }
