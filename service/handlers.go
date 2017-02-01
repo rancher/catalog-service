@@ -67,7 +67,7 @@ func createCatalog(w http.ResponseWriter, r *http.Request) {
 
 	catalogName := r.FormValue("name")
 	url := r.FormValue("url")
-	//refreshInterval := r.URL.Query().Get("refreshInterval")
+	branch := r.FormValue("branch")
 
 	if catalogName == "" {
 		ReturnHTTPError(w, r, http.StatusBadRequest, errors.New("Missing field 'name'"))
@@ -83,6 +83,7 @@ func createCatalog(w http.ResponseWriter, r *http.Request) {
 			EnvironmentId: environmentId,
 			Name:          catalogName,
 			URL:           url,
+			Branch:        branch,
 		},
 	}
 

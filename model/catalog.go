@@ -63,13 +63,30 @@ func LookupCatalogs(db *gorm.DB, environmentId string) []Catalog {
 func DeleteCatalog(db *gorm.DB, environmentId, name string) {
 	tx := db.Begin()
 
-	// TODO: delete templates, versions, and files
 	if err := tx.Where(&CatalogModel{
 		Catalog: Catalog{
 			Name:          name,
 			EnvironmentId: environmentId,
 		},
 	}).Delete(&CatalogModel{}).Error; err != nil {
+		tx.Rollback()
+	}
+
+	if err := tx.Where(&TemplateModel{
+		Template: Template{
+			Catalog:       name,
+			EnvironmentId: environmentId,
+		},
+	}).Delete(&TemplateModel{}).Error; err != nil {
+		tx.Rollback()
+	}
+
+	if err := tx.Where(&VersionModel{
+		Version: Version{
+			Catalog:       name,
+			EnvironmentId: environmentId,
+		},
+	}).Delete(&VersionModel{}).Error; err != nil {
 		tx.Rollback()
 	}
 
