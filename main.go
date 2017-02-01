@@ -21,7 +21,7 @@ var (
 	refreshInterval = flag.Int("refresh-interval", 60, "Time interval (in seconds) to periodically pull the catalog from git repo")
 	port            = flag.Int("port", 8088, "HTTP listen port")
 	cacheRoot       = flag.String("cache-root", "./cache", "Cache root")
-	configFile      = flag.String("configFile", "./repo.json", "Config file")
+	configFile      = flag.String("config-file", "./repo.json", "Config file")
 	refreshOnly     = flag.Bool("refresh", false, "Refresh and exit")
 )
 
