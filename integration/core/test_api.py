@@ -14,6 +14,60 @@ def headers(environment_id):
 DEFAULT_HEADERS = headers('e1')
 
 
+def create_catalog(name, url, branch=None, headers=DEFAULT_HEADERS):
+    schemas_url = 'http://localhost:8088/v1-catalog/schemas'
+    client = cattle.from_env(url=schemas_url, headers=headers)
+
+    original_catalogs = client.list_catalog()
+    assert len(original_catalogs) > 0
+    original_templates = client.list_template()
+    assert len(original_templates) > 0
+
+    data = {
+        'name': name,
+        'url': url,
+    }
+    if branch:
+        data['branch'] = branch
+
+    api_url = 'http://localhost:8088/v1-catalog/catalogs'
+    response = requests.post(api_url, data=data, headers=headers)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['name'] == name
+    assert resp['url'] == url
+    if branch:
+        assert resp['branch'] == branch
+
+    api_url = 'http://localhost:8088/v1-catalog/templates?action=refresh'
+    response = requests.post(api_url, headers=headers)
+    assert response.status_code == 204
+
+    templates = client.list_template()
+    catalogs = client.list_catalog()
+    assert len(catalogs) == len(original_catalogs) + 1
+    assert len(templates) > len(original_templates)
+
+
+def delete_catalog(name, headers=DEFAULT_HEADERS):
+    schemas_url = 'http://localhost:8088/v1-catalog/schemas'
+    client = cattle.from_env(url=schemas_url, headers=headers)
+
+    original_catalogs = client.list_catalog()
+    assert len(original_catalogs) > 0
+    original_templates = client.list_template()
+    assert len(original_templates) > 0
+
+    url = 'http://localhost:8088/v1-catalog/catalogs/' + name
+    response = requests.delete(url, headers=headers)
+    assert response.status_code == 204
+
+    templates = client.list_template()
+    catalogs = client.list_catalog()
+    assert len(catalogs) == len(original_catalogs) - 1
+    assert len(templates) < len(original_templates)
+
+
 @pytest.fixture
 def client():
     url = 'http://localhost:8088/v1-catalog/schemas'
@@ -42,30 +96,33 @@ def test_get_catalog(client):
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
 
 
-def test_create_catalog(client):
+def test_create_and_delete_catalog(client):
+    url = 'https://github.com/rancher/community-catalog'
+    create_catalog('created', url)
+    delete_catalog('created')
+
+
+def test_catalog_branch(client):
+    url = 'https://github.com/rancher/test-catalog'
+    create_catalog('branch', url, "test-branch")
+    delete_catalog('branch')
+
+
+def test_catalog_different_environment(client):
     original_catalogs = client.list_catalog()
     assert len(original_catalogs) > 0
     original_templates = client.list_template()
     assert len(original_templates) > 0
 
-    url = 'http://localhost:8088/v1-catalog/catalogs'
-    response = requests.post(url, data={
-        'name': 'created',
-        'url': 'https://github.com/rancher/community-catalog',
-    }, headers=DEFAULT_HEADERS)
-    assert response.status_code == 200
-    resp = response.json()
-    assert resp['name'] == 'created'
-    assert resp['url'] == 'https://github.com/rancher/community-catalog'
-
-    url = 'http://localhost:8088/v1-catalog/templates?action=refresh'
-    response = requests.post(url, headers=DEFAULT_HEADERS)
-    assert response.status_code == 204
+    url = 'https://github.com/rancher/community-catalog'
+    create_catalog('env', url, headers=headers('e2'))
 
     templates = client.list_template()
     catalogs = client.list_catalog()
-    assert len(catalogs) == len(original_catalogs) + 1
-    assert len(templates) > len(original_templates)
+    assert len(catalogs) == len(original_catalogs)
+    assert len(templates) == len(original_templates)
+
+    delete_catalog('env', headers=headers('e2'))
 
 
 def test_template_list(client):
