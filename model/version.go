@@ -45,8 +45,9 @@ func LookupVersionModel(db *gorm.DB, environmentId, catalog, template string, re
 		Version: Version{
 			Catalog:  catalog,
 			Template: template,
-			Revision: revision,
 		},
+	}).Where(map[string]interface{}{
+		"revision": revision,
 	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&versionModel)
 	return &versionModel
 }
