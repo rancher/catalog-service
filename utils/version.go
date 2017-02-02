@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/blang/semver"
+	"github.com/rancher/catalog-service/utils/version"
 )
 
 func VersionBetween(a, b, c string) bool {
@@ -19,48 +20,19 @@ func VersionBetween(a, b, c string) bool {
 	return !VersionGreaterThan(a, b) && !VersionGreaterThan(b, c)
 }
 
-func VersionGreaterThan(a, b string) bool {
-	re := regexp.MustCompile("[0-9]+")
-
-	a = strings.TrimLeft(a, "v")
-	b = strings.TrimLeft(b, "v")
-
-	aSplit := periodDashSplit(a)
-	bSplit := periodDashSplit(b)
-
-	for i := 0; i < len(aSplit); i++ {
-		if i == len(bSplit) {
-			return true
-		}
-		aMatch := re.FindString(aSplit[i])
-		bMatch := re.FindString(bSplit[i])
-		if aMatch == "" || bMatch == "" {
-			if strings.Compare(aSplit[i], bSplit[i]) > 0 {
-				return true
-			}
-			if strings.Compare(bSplit[i], aSplit[i]) > 0 {
-				return false
-			}
-		}
-		aNum, _ := strconv.Atoi(aMatch)
-		bNum, _ := strconv.Atoi(bMatch)
-		if aNum > bNum {
-			return true
-		}
-		if bNum > aNum {
-			return false
-		}
+func VersionSatisfiesRange(v, rng string) (bool, error) {
+	v = strings.TrimLeft(v, "v")
+	sv, err := semver.Parse(v)
+	if err != nil {
+		return false, err
 	}
-
-	return false
+	rangeFunc, err := semver.ParseRange(rng)
+	if err != nil {
+		return false, err
+	}
+	return rangeFunc(sv), nil
 }
 
-func periodDashSplit(s string) []string {
-	return strings.FieldsFunc(s, func(r rune) bool {
-		switch r {
-		case '.', '-':
-			return true
-		}
-		return false
-	})
+func VersionGreaterThan(a, b string) bool {
+	return version.GreaterThan(a, b)
 }

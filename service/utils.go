@@ -51,10 +51,6 @@ func URLEncoded(str string) string {
 }
 
 func generateVersionId(template model.Template, version model.Version) string {
-	// TODO: use logrus
-	if template.FolderName == "" {
-		fmt.Println("Missing FolderName")
-	}
 	if template.Base == "" {
 		return fmt.Sprintf("%s:%s:%d", template.Catalog, template.FolderName, version.Revision)
 	}
@@ -62,10 +58,6 @@ func generateVersionId(template model.Template, version model.Version) string {
 }
 
 func generateTemplateId(template model.Template) string {
-	// TODO: use logrus
-	if template.FolderName == "" {
-		fmt.Println("Missing FolderName")
-	}
 	if template.Base == "" {
 		return fmt.Sprintf("%s:%s", template.Catalog, template.FolderName)
 	}
@@ -142,11 +134,11 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 	links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
 
 	upgradeVersionLinks := map[string]string{}
-	for _, otherVersion := range versions {
-		if utils.VersionGreaterThan(otherVersion.Version, version.Version) && utils.VersionBetween(otherVersion.MinimumRancherVersion, rancherVersion, otherVersion.MaximumRancherVersion) {
-			route := generateVersionId(template, otherVersion)
+	for _, upgradeVersion := range versions {
+		if showUpgradeVersion(version, upgradeVersion, rancherVersion) {
+			route := generateVersionId(template, upgradeVersion)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
-			upgradeVersionLinks[otherVersion.Version] = URLEncoded(link)
+			upgradeVersionLinks[upgradeVersion.Version] = URLEncoded(link)
 		}
 	}
 
@@ -162,4 +154,21 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 		Questions:           questions,
 		UpgradeVersionLinks: upgradeVersionLinks,
 	}, nil
+}
+
+func showUpgradeVersion(version, upgradeVersion model.Version, rancherVersion string) bool {
+	if !utils.VersionGreaterThan(upgradeVersion.Version, version.Version) {
+		return false
+	}
+	if !utils.VersionBetween(upgradeVersion.MinimumRancherVersion, rancherVersion, upgradeVersion.MaximumRancherVersion) {
+		return false
+	}
+	if upgradeVersion.UpgradeFrom != "" {
+		satisfiesRange, err := utils.VersionSatisfiesRange(version.Version, upgradeVersion.UpgradeFrom)
+		if err != nil {
+			return false
+		}
+		return satisfiesRange
+	}
+	return true
 }
