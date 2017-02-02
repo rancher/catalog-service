@@ -15,6 +15,7 @@ type Version struct {
 	Version               string `json:"version"`
 	MinimumRancherVersion string `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
 	MaximumRancherVersion string `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
+	UpgradeFrom           string `json:"upgradeFrom" yaml:"upgrade_from"`
 
 	// TODO move to model
 	Files     []File
@@ -37,8 +38,7 @@ type TemplateVersionResource struct {
 	UpgradeVersionLinks map[string]string   `json:"upgradeVersionLinks"`
 }
 
-// TODO: needs a base filter
-// TODO: chekc if environmentId is ""?
+// TODO: needs a base filter (make sure to use a map)
 func LookupVersionModel(db *gorm.DB, environmentId, catalog, template string, revision int) *VersionModel {
 	var versionModel VersionModel
 	db.Where(&VersionModel{
