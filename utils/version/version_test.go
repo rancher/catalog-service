@@ -68,4 +68,7 @@ func TestGreaterThan(t *testing.T) {
 		"0.0.1-pre1",
 		"0.0.1",
 	})
+
+	assert.False(t, GreaterThan("v1.0.0+test", "v1.0.0"))
+	assert.False(t, GreaterThan("v1.0.0", "v1.0.0+test"))
 }
