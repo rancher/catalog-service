@@ -6,9 +6,14 @@ import (
 	"strings"
 )
 
+var (
+	numberRe = regexp.MustCompile("[0-9]+")
+	wordRe   = regexp.MustCompile("[a-z]+")
+)
+
 func GreaterThan(a, b string) bool {
-	numberRe := regexp.MustCompile("[0-9]+")
-	wordRe := regexp.MustCompile("[a-z]+")
+	a = stripMetadata(a)
+	b = stripMetadata(b)
 
 	a = strings.TrimLeft(a, "v")
 	b = strings.TrimLeft(b, "v")
@@ -58,6 +63,14 @@ func GreaterThan(a, b string) bool {
 	}
 
 	return false
+}
+
+func stripMetadata(v string) string {
+	split := strings.Split(v, "+")
+	if len(split) > 1 {
+		return split[0]
+	}
+	return v
 }
 
 func periodDashSplit(s string) []string {
