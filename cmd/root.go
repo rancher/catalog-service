@@ -47,20 +47,23 @@ func init() {
 	RootCmd.PersistentFlags().Bool("sqlite", false, "")
 	viper.BindPFlag("sqlite", RootCmd.PersistentFlags().Lookup("sqlite"))
 
+	RootCmd.PersistentFlags().Bool("migrate-db", false, "")
+	viper.BindPFlag("migrate-db", RootCmd.PersistentFlags().Lookup("migrate-db"))
+
 	RootCmd.PersistentFlags().String("mysql-user", "", "")
-	viper.BindPFlag("mysql_user", RootCmd.PersistentFlags().Lookup("mysql-user"))
+	viper.BindPFlag("mysql-user", RootCmd.PersistentFlags().Lookup("mysql-user"))
 
 	RootCmd.PersistentFlags().String("mysql-password", "", "")
-	viper.BindPFlag("mysql_password", RootCmd.PersistentFlags().Lookup("mysql-password"))
+	viper.BindPFlag("mysql-password", RootCmd.PersistentFlags().Lookup("mysql-password"))
 
 	RootCmd.PersistentFlags().String("mysql-address", "", "")
-	viper.BindPFlag("mysql_address", RootCmd.PersistentFlags().Lookup("mysql-address"))
+	viper.BindPFlag("mysql-address", RootCmd.PersistentFlags().Lookup("mysql-address"))
 
 	RootCmd.PersistentFlags().String("mysql-dbname", "", "")
-	viper.BindPFlag("mysql_dbname", RootCmd.PersistentFlags().Lookup("mysql-dbname"))
+	viper.BindPFlag("mysql-dbname", RootCmd.PersistentFlags().Lookup("mysql-dbname"))
 
 	RootCmd.PersistentFlags().String("mysql-params", "", "")
-	viper.BindPFlag("mysql_params", RootCmd.PersistentFlags().Lookup("mysql-params"))
+	viper.BindPFlag("mysql-params", RootCmd.PersistentFlags().Lookup("mysql-params"))
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -70,32 +73,46 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	var db *gorm.DB
+	migrate := viper.GetBool("migrate-db")
 
 	if viper.GetBool("sqlite") {
 		db, err = gorm.Open("sqlite3", "local.db")
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer db.Close()
-
-		db.AutoMigrate(&model.CatalogModel{})
-		db.AutoMigrate(&model.TemplateModel{})
-		db.AutoMigrate(&model.VersionModel{})
-		db.AutoMigrate(&model.FileModel{})
+		migrate = true
 	} else {
-		user := viper.GetString("mysql_user")
-		password := viper.GetString("mysql_password")
-		address := viper.GetString("mysql_address")
-		dbname := viper.GetString("mysql_dbname")
-		params := viper.GetString("mysql_params")
+		user := viper.GetString("mysql-user")
+		password := viper.GetString("mysql-password")
+		address := viper.GetString("mysql-address")
+		dbname := viper.GetString("mysql-dbname")
+		params := viper.GetString("mysql-params")
 
 		db, err = gorm.Open("mysql", formatDSN(user, password, address, dbname, params))
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+	defer db.Close()
 
-	refreshInterval := viper.GetInt("refresh_interval")
+	db.SingularTable(true)
+	gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
+		defaultTableName = strings.TrimSuffix(defaultTableName, "_model")
+		if defaultTableName == "catalog" {
+			return defaultTableName
+		}
+		return "catalog_" + defaultTableName
+	}
+
+	if migrate {
+		log.Info("Migrating DB")
+		db.AutoMigrate(&model.CatalogModel{})
+		db.AutoMigrate(&model.TemplateModel{})
+		db.AutoMigrate(&model.VersionModel{})
+		db.AutoMigrate(&model.FileModel{})
+	}
+
+	refreshInterval := viper.GetInt("refresh-interval")
 	port := viper.GetInt("port")
 	cacheRoot := viper.GetString("cache")
 	validateOnly := viper.GetBool("validate")
@@ -115,7 +132,9 @@ func run(cmd *cobra.Command, args []string) {
 }
 
 func formatDSN(user, password, address, dbname, params string) string {
-	paramsMap := map[string]string{}
+	paramsMap := map[string]string{
+		"parseTime": "true",
+	}
 	for _, param := range strings.Split(params, "&") {
 		split := strings.SplitN(param, "=", 2)
 		if len(split) > 1 {
