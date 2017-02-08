@@ -11,7 +11,7 @@ type File struct {
 }
 
 type FileModel struct {
-	gorm.Model
+	Base
 	File
 }
 

@@ -5,18 +5,6 @@ import (
 	"github.com/rancher/go-rancher/client"
 )
 
-//Catalog defines the properties of a template Catalog
-/*type Catalog struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
-	CatalogLink string `json:"catalogLink"`
-	URL         string `json:"uri"`
-	State       string `json:"state"`
-	LastUpdated string `json:"lastUpdated"`
-	Message     string `json:"message"`
-	URLBranch   string `json:"branch"`
-}*/
-
 type Catalog struct {
 	Name          string `json:"name"`
 	URL           string `json:"url"`
@@ -26,7 +14,7 @@ type Catalog struct {
 }
 
 type CatalogModel struct {
-	gorm.Model
+	Base
 	Catalog
 }
 
