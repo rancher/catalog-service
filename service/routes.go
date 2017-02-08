@@ -21,70 +21,26 @@ func (httpWrapper *MuxWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	httpWrapper.Router.ServeHTTP(w, r)
 }
 
-type Route struct {
-	Name        string
-	Method      string
-	Pattern     string
-	HandlerFunc http.HandlerFunc
-}
-
-var routes = []Route{
-	{
-		"GetTemplates",
-		"GET",
-		"/v1-catalog/templates",
-		getTemplates,
-	},
-	{
-		"GetTemplate",
-		"GET",
-		"/v1-catalog/templates/{catalog_template_version}",
-		getTemplate,
-	},
-	{
-		"GetCatalogs",
-		"GET",
-		"/v1-catalog/catalogs",
-		getCatalogs,
-	},
-	{
-		"CreateCatalog",
-		"POST",
-		"/v1-catalog/catalogs",
-		createCatalog,
-	},
-	{
-		"DeleteCatalog",
-		"DELETE",
-		"/v1-catalog/catalogs/{catalog}",
-		deleteCatalog,
-	},
-	{
-		"GetCatalog",
-		"GET",
-		"/v1-catalog/catalogs/{catalog}",
-		getCatalog,
-	},
-	{
-		"GetCatalogTemplates",
-		"GET",
-		"/v1-catalog/catalogs/{catalog}/templates",
-		getCatalogTemplates,
-	},
-	{
-		"RefreshCatalog",
-		"POST",
-		"/v1-catalog/templates",
-		refreshCatalog,
-	},
-}
-
 // TODO
 var schemas *client.Schemas
 
 // TODO
 var m *manager.Manager
 var db *gorm.DB
+
+func handler(schemas *client.Schemas, f func(http.ResponseWriter, *http.Request, string) error) http.Handler {
+	return api.ApiHandler(schemas, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		envId, err := getEnvironmentId(r)
+		if err != nil {
+			ReturnHTTPError(w, r, http.StatusBadRequest, err)
+			return
+		}
+		if err = f(w, r, envId); err != nil {
+			ReturnHTTPError(w, r, http.StatusBadRequest, err)
+			return
+		}
+	}))
+}
 
 func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	// TODO
@@ -121,15 +77,15 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	router.Methods("GET").Path("/v1-catalog/schemas/{id}").Handler(api.SchemaHandler(schemas))
 	router.Methods("GET").Path("/v1-catalog").Handler(api.VersionHandler(schemas, "v1-catalog"))
 
-	for _, route := range routes {
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(api.ApiHandler(schemas, route.HandlerFunc))
-	}
+	router.Methods("GET").Path("/v1-catalog/catalogs").Name("GetCatalogs").Handler(handler(schemas, getCatalogs))
+	router.Methods("GET").Path("/v1-catalog/catalogs/{catalog}").Name("GetCatalog").Handler(handler(schemas, getCatalog))
+	router.Methods("POST").Path("/v1-catalog/catalogs").Name("CreateCatalog").Handler(handler(schemas, createCatalog))
+	router.Methods("DELETE").Path("/v1-catalog/catalogs/{catalog}").Name("DeleteCatalog").Handler(handler(schemas, deleteCatalog))
 
-	router.GetRoute("RefreshCatalog").Queries("action", "refresh")
+	router.Methods("GET").Path("/v1-catalog/templates").Name("GetTemplates").Handler(handler(schemas, getTemplates))
+	router.Methods("GET").Path("/v1-catalog/templates/{catalog_template_version}").Name("GetTemplate").Handler(handler(schemas, getTemplate))
+	router.Methods("POST").Path("/v1-catalog/templates").Name("RefreshTemplates").Handler(handler(schemas, refreshTemplates))
+	router.GetRoute("RefreshTemplates").Queries("action", "refresh")
 
 	return router
 }
