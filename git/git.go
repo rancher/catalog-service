@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func Clone(path, url, branch string) error {
@@ -30,5 +31,5 @@ func Update(path, branch string) error {
 func HeadCommit(path string) (string, error) {
 	cmd := exec.Command("git", "-C", path, "rev-parse", "HEAD")
 	output, err := cmd.Output()
-	return string(output), err
+	return strings.Trim(string(output), "\n"), err
 }
