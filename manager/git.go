@@ -3,16 +3,28 @@ package manager
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 
+	"github.com/rancher/catalog-service/git"
 	"github.com/rancher/catalog-service/model"
 )
 
-func (m *Manager) prepareRepoPath(catalog model.Catalog) (string, error) {
+func dirEmpty(dir string) (bool, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
+}
+
+func (m *Manager) prepareRepoPath(catalog model.Catalog) (string, string, error) {
 	branch := catalog.Branch
 	if catalog.Branch == "" {
 		branch = "master"
@@ -23,39 +35,24 @@ func (m *Manager) prepareRepoPath(catalog model.Catalog) (string, error) {
 	repoPath := path.Join(m.cacheRoot, catalog.EnvironmentId, repoBranchHash)
 
 	if err := os.MkdirAll(repoPath, 0755); err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	f, err := os.Open(repoPath)
+	empty, err := dirEmpty(repoPath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	_, err = f.Readdirnames(1)
-	if err == io.EOF {
-		cmd := exec.Command("git", "clone", "-b", branch, "--single-branch", catalog.URL, repoPath)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err = cmd.Run(); err != nil {
-			return "", err
+	if empty {
+		if err = git.Clone(repoPath, catalog.URL, branch); err != nil {
+			return "", "", nil
+		}
+	} else {
+		if err = git.Update(repoPath, branch); err != nil {
+			return "", "", nil
 		}
 	}
 
-	f.Close()
-
-	cmd := exec.Command("git", "-C", repoPath, "fetch")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err = cmd.Run(); err != nil {
-		return "", err
-	}
-
-	cmd = exec.Command("git", "-C", repoPath, "checkout", fmt.Sprintf("origin/%s", branch))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err = cmd.Run(); err != nil {
-		return "", err
-	}
-
-	return repoPath, nil
+	commit, err := git.HeadCommit(repoPath)
+	return repoPath, commit, err
 }

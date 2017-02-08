@@ -36,13 +36,18 @@ func (m *Manager) lookupCatalogs(environmentId string) ([]model.Catalog, error) 
 	return catalogs, nil
 }
 
-func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, versions []model.Version) error {
+func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, versions []model.Version, newCommit string) error {
 	tx := m.db.Begin()
 
 	var catalogModel model.CatalogModel
 	if err := tx.FirstOrCreate(&catalogModel, model.CatalogModel{
 		Catalog: catalog,
 	}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Model(&catalogModel).Update("commit", newCommit).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -96,6 +96,20 @@ def test_get_catalog(client):
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
 
 
+def test_catalog_commit(client):
+    url = 'http://localhost:8088/v1-catalog/catalogs/orig'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['commit'] == '1af7e6801786317999f4c51a103fa65b065c7bc8'
+
+    url = 'http://localhost:8088/v1-catalog/catalogs/updated'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['commit'] != '1af7e6801786317999f4c51a103fa65b065c7bc8'
+
+
 def test_create_and_delete_catalog(client):
     url = 'https://github.com/rancher/community-catalog'
     create_catalog('created', url)

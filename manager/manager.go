@@ -52,9 +52,14 @@ func (m *Manager) Refresh(environmentId string) error {
 }
 
 func (m *Manager) refreshCatalog(catalog model.Catalog) error {
-	repoPath, err := m.prepareRepoPath(catalog)
+	repoPath, commit, err := m.prepareRepoPath(catalog)
 	if err != nil {
 		return err
+	}
+
+	// Catalog is already up to date
+	if commit == catalog.Commit {
+		return nil
 	}
 
 	templates, versions, err := traverseFiles(repoPath)
@@ -62,7 +67,7 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 		return err
 	}
 
-	return m.updateDb(catalog, templates, versions)
+	return m.updateDb(catalog, templates, versions, commit)
 }
 
 // TODO: move elsewhere
