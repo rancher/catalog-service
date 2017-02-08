@@ -5,7 +5,7 @@ cd $(dirname $0)/..
 
 git clone https://github.com/rancher/test-catalog.git /tmp/test-catalog
 
-./bin/rancher-catalog-service -config-file scripts/test-setup.json -refresh
+./bin/rancher-catalog-service --sqlite --config scripts/test-setup.json --validate
 
 cd /tmp/test-catalog
 
