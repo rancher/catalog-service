@@ -29,7 +29,7 @@ type Template struct {
 }
 
 type TemplateModel struct {
-	gorm.Model
+	Base
 	Template
 }
 

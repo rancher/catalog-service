@@ -24,7 +24,7 @@ type Version struct {
 }
 
 type VersionModel struct {
-	gorm.Model
+	Base
 	Version
 }
 
