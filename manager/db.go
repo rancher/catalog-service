@@ -9,6 +9,7 @@ func (m *Manager) CreateConfigCatalogs() error {
 			Catalog: model.Catalog{
 				Name:          name,
 				URL:           config.URL,
+				Branch:        config.Branch,
 				EnvironmentId: "global",
 			},
 		}).Error; err != nil {

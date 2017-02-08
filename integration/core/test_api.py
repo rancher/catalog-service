@@ -48,6 +48,8 @@ def create_catalog(name, url, branch=None, headers=DEFAULT_HEADERS):
     assert len(catalogs) == len(original_catalogs) + 1
     assert len(templates) > len(original_templates)
 
+    return resp
+
 
 def delete_catalog(name, headers=DEFAULT_HEADERS):
     schemas_url = 'http://localhost:8088/v1-catalog/schemas'
@@ -120,6 +122,13 @@ def test_catalog_branch(client):
     url = 'https://github.com/rancher/test-catalog'
     create_catalog('branch', url, "test-branch")
     delete_catalog('branch')
+
+
+def test_broken_catalog(client):
+    url = 'https://github.com/rancher/test-catalog'
+    broken_catalog = create_catalog('broken', url, "broken")
+    assert broken_catalog['transitioningMessage'] != ''
+    delete_catalog('broken')
 
 
 def test_catalog_different_environment(client):

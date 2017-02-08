@@ -6,11 +6,12 @@ import (
 )
 
 type Catalog struct {
-	Name          string `json:"name"`
-	URL           string `json:"url"`
-	Branch        string `json:"branch"`
-	Commit        string `json:"commit"`
-	EnvironmentId string `json:"environmentId"`
+	Name                 string `json:"name"`
+	URL                  string `json:"url"`
+	Branch               string `json:"branch"`
+	Commit               string `json:"commit"`
+	EnvironmentId        string `json:"environmentId"`
+	TransitioningMessage string `json:"transitioningMessage"`
 }
 
 type CatalogModel struct {
