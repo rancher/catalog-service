@@ -108,7 +108,7 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) e
 	// TODO: this is duplicated
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		versions := model.LookupVersions(db, envId, catalogName, template.FolderName)
+		versions := model.LookupVersions(db, envId, catalogName, template.Base, template.FolderName)
 		resp.Data = append(resp.Data, *templateResource(apiContext, catalogName, template, versions, rancherVersion))
 	}
 

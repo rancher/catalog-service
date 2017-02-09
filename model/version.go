@@ -39,7 +39,7 @@ type TemplateVersionResource struct {
 }
 
 // TODO: needs a base filter (make sure to use a map)
-func LookupVersionModel(db *gorm.DB, environmentId, catalog, template string, revision int) *VersionModel {
+func LookupVersionModel(db *gorm.DB, environmentId, catalog, base, template string, revision int) *VersionModel {
 	var versionModel VersionModel
 	db.Raw(`
 SELECT catalog_version.*
@@ -48,13 +48,14 @@ WHERE (catalog_version.environment_id = ? OR catalog_version.environment_id = ?)
 AND catalog_version.template_id = catalog_template.id
 AND catalog_template.catalog_id = catalog.id
 AND catalog.name = ?
+AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
 AND catalog_version.revision = ?
-`, environmentId, "global", catalog, template, revision).Scan(&versionModel)
+`, environmentId, "global", catalog, base, template, revision).Scan(&versionModel)
 	return &versionModel
 }
 
-func LookupVersions(db *gorm.DB, environmentId, catalog, template string) []Version {
+func LookupVersions(db *gorm.DB, environmentId, catalog, base, template string) []Version {
 	var versionModels []VersionModel
 	db.Raw(`
 SELECT catalog_version.*
@@ -63,8 +64,9 @@ WHERE (catalog_version.environment_id = ? OR catalog_version.environment_id = ?)
 AND catalog_version.template_id = catalog_template.id
 AND catalog_template.catalog_id = catalog.id
 AND catalog.name = ?
+AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
-`, environmentId, "global", catalog, template).Scan(&versionModels)
+`, environmentId, "global", catalog, base, template).Scan(&versionModels)
 
 	var versions []Version
 	for _, versionModel := range versionModels {
