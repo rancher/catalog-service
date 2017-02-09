@@ -34,7 +34,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
 		catalog := model.GetCatalog(db, template.CatalogId)
-		versions := model.LookupVersions(db, envId, catalog.Name, template.FolderName)
+		versions := model.LookupVersions(db, envId, catalog.Name, template.Base, template.FolderName)
 		resp.Data = append(resp.Data, *templateResource(apiContext, catalog.Name, template, versions, rancherVersion))
 	}
 
@@ -68,14 +68,14 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
 			return nil
 		}
 
-		versions := model.LookupVersions(db, envId, catalogName, templateName)
+		versions := model.LookupVersions(db, envId, catalogName, templateBase, templateName)
 
 		apiContext.Write(templateResource(apiContext, catalogName, *template, versions, rancherVersion))
 	} else {
 		// Return template version
 		template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
-		versionModel := model.LookupVersionModel(db, envId, catalogName, templateName, revisionNumber)
-		versions := model.LookupVersions(db, envId, catalogName, templateName)
+		versionModel := model.LookupVersionModel(db, envId, catalogName, templateBase, templateName, revisionNumber)
+		versions := model.LookupVersions(db, envId, catalogName, templateBase, templateName)
 
 		// TODO: version READMEs
 		if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
