@@ -1,6 +1,8 @@
 package manager
 
 import (
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/catalog-service/model"
 )
@@ -54,7 +56,8 @@ func (m *Manager) Refresh(environmentId string) error {
 func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 	repoPath, commit, err := m.prepareRepoPath(catalog)
 	if err != nil {
-		return err
+		catalog.TransitioningMessage = err.Error()
+		return m.updateDb(catalog, nil, nil, commit)
 	}
 
 	// Catalog is already up to date
@@ -62,24 +65,10 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 		return nil
 	}
 
-	templates, versions, err := traverseFiles(repoPath)
-	if err != nil {
-		return err
+	templates, versions, errors := traverseFiles(repoPath)
+	if errors != nil {
+		catalog.TransitioningMessage = strings.Join(errors, ";")
 	}
 
 	return m.updateDb(catalog, templates, versions, commit)
-}
-
-// TODO: move elsewhere
-type TemplateConfig struct {
-	Name           string            `yaml:"name"`
-	Category       string            `yaml:"category"`
-	Description    string            `yaml:"description"`
-	Version        string            `yaml:"version"`
-	Maintainer     string            `yaml:"maintainer"`
-	License        string            `yaml:"license"`
-	ProjectURL     string            `yaml:"projectURL"`
-	IsSystem       string            `yaml:"isSystem"`
-	DefaultVersion string            `yaml:"version"`
-	Labels         map[string]string `yaml:"version"`
 }
