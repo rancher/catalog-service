@@ -24,12 +24,18 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
 	//categoryNe := r.URL.Query().Get("category_ne")
 	rancherVersion := r.URL.Query().Get("rancherVersion")
 
-	templates := model.LookupTemplates(db, envId, catalog, category)
+	var templates []model.Template
+	if catalog == "" {
+		templates = model.LookupTemplates(db, envId, category)
+	} else {
+		templates = model.LookupCatalogTemplates(db, envId, catalog, category)
+	}
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		versions := model.LookupVersions(db, envId, catalog, template.FolderName)
-		resp.Data = append(resp.Data, *templateResource(apiContext, template, versions, rancherVersion))
+		catalog := model.GetCatalog(db, template.CatalogId)
+		versions := model.LookupVersions(db, envId, catalog.Name, template.FolderName)
+		resp.Data = append(resp.Data, *templateResource(apiContext, catalog.Name, template, versions, rancherVersion))
 	}
 
 	resp.Actions = map[string]string{
@@ -64,7 +70,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
 
 		versions := model.LookupVersions(db, envId, catalogName, templateName)
 
-		apiContext.Write(templateResource(apiContext, *template, versions, rancherVersion))
+		apiContext.Write(templateResource(apiContext, catalogName, *template, versions, rancherVersion))
 	} else {
 		// Return template version
 		template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
@@ -79,7 +85,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
 
 		files := model.LookupFiles(db, envId, catalogName, versionModel.ID)
 
-		versionResource, err := versionResource(apiContext, *template, versionModel.Version, versions, files, rancherVersion)
+		versionResource, err := versionResource(apiContext, catalogName, *template, versionModel.Version, versions, files, rancherVersion)
 		if err != nil {
 			return err
 		}

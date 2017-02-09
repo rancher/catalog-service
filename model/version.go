@@ -8,9 +8,9 @@ import (
 // TODO: might need a Base field for filtering
 // TODO: might need a FolderName field for filtering
 type Version struct {
-	Catalog               string `json:"catalogId"`
-	EnvironmentId         string `json:"environmentId"`
-	Template              string `json:"template"`
+	EnvironmentId string `json:"environmentId"`
+	TemplateId    uint   `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
+
 	Revision              int    `json:"revision"`
 	Version               string `json:"version"`
 	MinimumRancherVersion string `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
@@ -41,25 +41,31 @@ type TemplateVersionResource struct {
 // TODO: needs a base filter (make sure to use a map)
 func LookupVersionModel(db *gorm.DB, environmentId, catalog, template string, revision int) *VersionModel {
 	var versionModel VersionModel
-	db.Where(&VersionModel{
-		Version: Version{
-			Catalog:  catalog,
-			Template: template,
-		},
-	}).Where(map[string]interface{}{
-		"revision": revision,
-	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&versionModel)
+	db.Raw(`
+SELECT catalog_version.*
+FROM catalog_version, catalog_template, catalog
+WHERE (catalog_version.environment_id = ? OR catalog_version.environment_id = ?)
+AND catalog_version.template_id = catalog_template.id
+AND catalog_template.catalog_id = catalog.id
+AND catalog.name = ?
+AND catalog_template.folder_name = ?
+AND catalog_version.revision = ?
+`, environmentId, "global", catalog, template, revision).Scan(&versionModel)
 	return &versionModel
 }
 
 func LookupVersions(db *gorm.DB, environmentId, catalog, template string) []Version {
 	var versionModels []VersionModel
-	db.Where(&VersionModel{
-		Version: Version{
-			Catalog:  catalog,
-			Template: template,
-		},
-	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&versionModels)
+	db.Raw(`
+SELECT catalog_version.*
+FROM catalog_version, catalog_template, catalog
+WHERE (catalog_version.environment_id = ? OR catalog_version.environment_id = ?)
+AND catalog_version.template_id = catalog_template.id
+AND catalog_template.catalog_id = catalog.id
+AND catalog.name = ?
+AND catalog_template.folder_name = ?
+`, environmentId, "global", catalog, template).Scan(&versionModels)
+
 	var versions []Version
 	for _, versionModel := range versionModels {
 		versions = append(versions, versionModel.Version)

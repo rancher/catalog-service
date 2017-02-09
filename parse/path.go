@@ -61,12 +61,10 @@ func VersionPath(path string) (string, string, int, bool) {
 		return "", "", 0, false
 	}
 
-	catalog := split[0]
-	template := split[1]
 	revision, err := strconv.Atoi(split[2])
 	if err != nil {
 		return "", "", 0, false
 	}
 
-	return catalog, template, revision, true
+	return split[0], split[1], revision, true
 }

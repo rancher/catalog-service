@@ -6,6 +6,9 @@ import (
 )
 
 type Template struct {
+	EnvironmentId string `json:"environmentId"`
+	CatalogId     uint   `sql:"type:integer REFERENCES catalog(id) ON DELETE CASCADE"`
+
 	Name           string `json:"name"`
 	Category       string `json:"category"`
 	IsSystem       string `json:"isSystem"`
@@ -19,13 +22,12 @@ type Template struct {
 	UpgradeFrom string `json:"upgradeFrom"`
 
 	// TODO
-	FolderName    string `json:"folderName"`
-	Catalog       string `json:"catalogId"`
-	EnvironmentId string `json:"environmentId"`
-	//Prefix        string `json:"prefix"`
+	FolderName   string `json:"folderName"`
+	Catalog      string `json:"catalogId"`
 	Base         string `json:"templateBase"`
 	Icon         []byte `json:"icon"`
 	IconFilename string `json:"iconFilename"`
+	Versions     []Version
 }
 
 type TemplateModel struct {
@@ -47,23 +49,42 @@ type TemplateCollection struct {
 
 func LookupTemplate(db *gorm.DB, environmentId, catalog, folderName, base string) *Template {
 	var templateModel TemplateModel
-	db.Where(&TemplateModel{
-		Template: Template{
-			Catalog:    catalog,
-			FolderName: folderName,
-			Base:       base,
-		},
-	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&templateModel)
+	db.Raw(`
+SELECT catalog_template.*
+FROM catalog_template, catalog
+WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
+AND catalog_template.catalog_id = catalog.id
+AND catalog.name = ?
+AND catalog_template.base = ?
+AND catalog_template.folder_name = ?
+`, environmentId, "global", catalog, base, folderName).Scan(&templateModel)
 	return &templateModel.Template
 }
 
-func LookupTemplates(db *gorm.DB, environmentId, catalog, category string) []Template {
+func LookupTemplates(db *gorm.DB, environmentId, category string) []Template {
 	var templateModels []TemplateModel
-	db.Where(&TemplateModel{
-		Template: Template{
-			Catalog: catalog,
-		},
-	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&templateModels)
+
+	// TODO: category
+	db.Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&templateModels)
+
+	var templates []Template
+	for _, templateModel := range templateModels {
+		templates = append(templates, templateModel.Template)
+	}
+	return templates
+}
+
+func LookupCatalogTemplates(db *gorm.DB, environmentId, catalog, category string) []Template {
+	var templateModels []TemplateModel
+
+	db.Raw(`
+SELECT catalog_template.*
+FROM catalog_template, catalog
+WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
+AND catalog_template.catalog_id = catalog.id
+AND catalog.name = ?
+`, environmentId, "global", catalog).Scan(&templateModels)
+
 	var templates []Template
 	for _, templateModel := range templateModels {
 		templates = append(templates, templateModel.Template)

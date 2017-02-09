@@ -103,13 +103,13 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) e
 	//categoryNe := r.URL.Query().Get("category_ne")
 	rancherVersion := r.URL.Query().Get("rancherVersion")
 
-	templates := model.LookupTemplates(db, envId, catalogName, category)
+	templates := model.LookupCatalogTemplates(db, envId, catalogName, category)
 
 	// TODO: this is duplicated
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
 		versions := model.LookupVersions(db, envId, catalogName, template.FolderName)
-		resp.Data = append(resp.Data, *templateResource(apiContext, template, versions, rancherVersion))
+		resp.Data = append(resp.Data, *templateResource(apiContext, catalogName, template, versions, rancherVersion))
 	}
 
 	resp.Actions = map[string]string{

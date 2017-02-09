@@ -80,6 +80,7 @@ func run(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		db.Exec("PRAGMA foreign_keys = ON")
 		migrate = true
 	} else {
 		user := viper.GetString("mysql-user")
