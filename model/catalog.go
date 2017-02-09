@@ -12,6 +12,7 @@ type Catalog struct {
 	URL    string `json:"url"`
 	Branch string `json:"branch"`
 	Commit string `json:"commit"`
+	Type   string `json:"type"`
 }
 
 type CatalogModel struct {

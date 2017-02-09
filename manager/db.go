@@ -68,6 +68,46 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 			return err
 		}
 
+		for k, v := range template.Labels {
+			if err := tx.Create(&model.LabelModel{
+				Label: model.Label{
+					TemplateId: templateModel.ID,
+					Key:        k,
+					Value:      v,
+				},
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		if template.Category != "" {
+			// TODO: TemplateCategory composite key
+			template.Categories = append(template.Categories, template.Category)
+		}
+
+		for _, category := range template.Categories {
+			var categoryModel model.CategoryModel
+			if err := tx.FirstOrCreate(&categoryModel, model.CategoryModel{
+				Category: model.Category{
+					Name: category,
+				},
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := tx.Create(&model.TemplateCategoryModel{
+				TemplateCategory: model.TemplateCategory{
+					TemplateId: templateModel.ID,
+					CategoryId: categoryModel.ID,
+				},
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
 		for _, version := range template.Versions {
 			version.TemplateId = templateModel.ID
 			version.EnvironmentId = catalog.EnvironmentId

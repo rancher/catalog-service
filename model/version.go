@@ -5,8 +5,6 @@ import (
 	"github.com/rancher/go-rancher/client"
 )
 
-// TODO: might need a Base field for filtering
-// TODO: might need a FolderName field for filtering
 type Version struct {
 	EnvironmentId string `json:"environmentId"`
 	TemplateId    uint   `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
@@ -16,11 +14,10 @@ type Version struct {
 	MinimumRancherVersion string `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
 	MaximumRancherVersion string `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
 	UpgradeFrom           string `json:"upgradeFrom" yaml:"upgrade_from"`
+	Readme                string `json:"readme"`
 
-	// TODO move to model
-	Files     []File
-	Questions []Question
-	Readme    string `json:"readme"`
+	Files     []File     `sql:"-"`
+	Questions []Question `sql:"-"`
 }
 
 type VersionModel struct {

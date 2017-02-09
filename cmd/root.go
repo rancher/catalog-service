@@ -106,7 +106,12 @@ func run(cmd *cobra.Command, args []string) {
 	if migrateDb {
 		log.Info("Migrating DB")
 		db.AutoMigrate(&model.CatalogModel{})
+
 		db.AutoMigrate(&model.TemplateModel{})
+		db.AutoMigrate(&model.CategoryModel{})
+		db.AutoMigrate(&model.TemplateCategoryModel{})
+		db.AutoMigrate(&model.LabelModel{})
+
 		db.AutoMigrate(&model.VersionModel{})
 		db.AutoMigrate(&model.FileModel{})
 	}

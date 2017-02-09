@@ -10,7 +10,6 @@ type Template struct {
 	CatalogId     uint   `sql:"type:integer REFERENCES catalog(id) ON DELETE CASCADE"`
 
 	Name           string `json:"name"`
-	Category       string `json:"category"`
 	IsSystem       string `json:"isSystem"`
 	Description    string `json:"description"`
 	DefaultVersion string `json:"defaultVersion" yaml:"version"`
@@ -18,16 +17,18 @@ type Template struct {
 	Maintainer     string `json:"maintainer"`
 	License        string `json:"license"`
 	ProjectURL     string `json:"projectURL"`
-	//Labels                map[string]string      `json:"labels"`
-	UpgradeFrom string `json:"upgradeFrom"`
+	UpgradeFrom    string `json:"upgradeFrom"`
+	FolderName     string `json:"folderName"`
+	Catalog        string `json:"catalogId"`
+	Base           string `json:"templateBase"`
+	Icon           []byte `json:"icon"`
+	IconFilename   string `json:"iconFilename"`
+	Readme         string `json:"readme"`
 
-	// TODO
-	FolderName   string `json:"folderName"`
-	Catalog      string `json:"catalogId"`
-	Base         string `json:"templateBase"`
-	Icon         []byte `json:"icon"`
-	IconFilename string `json:"iconFilename"`
-	Versions     []Version
+	Versions   []Version         `sql:"-"`
+	Category   string            `sql:"-"`
+	Categories []string          `sql:"-"`
+	Labels     map[string]string `sql:"-"`
 }
 
 type TemplateModel struct {
