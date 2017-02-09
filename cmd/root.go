@@ -21,6 +21,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	refreshInterval int
+	port            int
+	cacheRoot       string
+	configFile      string
+	validateOnly    bool
+	sqlite          bool
+	migrateDb       bool
+)
+
 var RootCmd = &cobra.Command{
 	Use: "catalog-service",
 	Run: run,
@@ -28,66 +38,54 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	viper.SetEnvPrefix("catalog_service")
+	viper.AutomaticEnv()
 
 	RootCmd.PersistentFlags().Int("refresh-interval", 60, "")
 	viper.BindPFlag("refresh_interval", RootCmd.PersistentFlags().Lookup("refresh-interval"))
 
-	RootCmd.PersistentFlags().IntP("port", "p", 8088, "")
-	viper.BindPFlag("port", RootCmd.PersistentFlags().Lookup("port"))
-
-	RootCmd.PersistentFlags().String("cache", "./cache", "")
-	viper.BindPFlag("cache", RootCmd.PersistentFlags().Lookup("cache"))
-
-	RootCmd.PersistentFlags().String("config", "./repo.json", "")
-	viper.BindPFlag("config", RootCmd.PersistentFlags().Lookup("config"))
-
-	RootCmd.PersistentFlags().Bool("validate", false, "")
-	viper.BindPFlag("validate", RootCmd.PersistentFlags().Lookup("validate"))
-
-	RootCmd.PersistentFlags().Bool("sqlite", false, "")
-	viper.BindPFlag("sqlite", RootCmd.PersistentFlags().Lookup("sqlite"))
-
-	RootCmd.PersistentFlags().Bool("migrate-db", false, "")
-	viper.BindPFlag("migrate-db", RootCmd.PersistentFlags().Lookup("migrate-db"))
+	RootCmd.PersistentFlags().IntVarP(&port, "port", "p", 8088, "")
+	RootCmd.PersistentFlags().StringVar(&cacheRoot, "cache", "./cache", "")
+	RootCmd.PersistentFlags().StringVar(&configFile, "config", "./repo.json", "")
+	RootCmd.PersistentFlags().BoolVar(&validateOnly, "validate", false, "")
+	RootCmd.PersistentFlags().BoolVar(&sqlite, "sqlite", false, "")
+	RootCmd.PersistentFlags().BoolVar(&migrateDb, "migrate-db", false, "")
 
 	RootCmd.PersistentFlags().String("mysql-user", "", "")
-	viper.BindPFlag("mysql-user", RootCmd.PersistentFlags().Lookup("mysql-user"))
+	viper.BindPFlag("mysql_user", RootCmd.PersistentFlags().Lookup("mysql-user"))
 
 	RootCmd.PersistentFlags().String("mysql-password", "", "")
-	viper.BindPFlag("mysql-password", RootCmd.PersistentFlags().Lookup("mysql-password"))
+	viper.BindPFlag("mysql_password", RootCmd.PersistentFlags().Lookup("mysql-password"))
 
 	RootCmd.PersistentFlags().String("mysql-address", "", "")
-	viper.BindPFlag("mysql-address", RootCmd.PersistentFlags().Lookup("mysql-address"))
+	viper.BindPFlag("mysql_address", RootCmd.PersistentFlags().Lookup("mysql-address"))
 
 	RootCmd.PersistentFlags().String("mysql-dbname", "", "")
-	viper.BindPFlag("mysql-dbname", RootCmd.PersistentFlags().Lookup("mysql-dbname"))
+	viper.BindPFlag("mysql_dbname", RootCmd.PersistentFlags().Lookup("mysql-dbname"))
 
 	RootCmd.PersistentFlags().String("mysql-params", "", "")
-	viper.BindPFlag("mysql-params", RootCmd.PersistentFlags().Lookup("mysql-params"))
+	viper.BindPFlag("mysql_params", RootCmd.PersistentFlags().Lookup("mysql-params"))
 }
 
 func run(cmd *cobra.Command, args []string) {
-	config, err := readConfig(viper.GetString("config"))
+	config, err := readConfig(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var db *gorm.DB
-	migrate := viper.GetBool("migrate-db")
-
-	if viper.GetBool("sqlite") {
+	if sqlite {
 		db, err = gorm.Open("sqlite3", "local.db")
 		if err != nil {
 			log.Fatal(err)
 		}
 		db.Exec("PRAGMA foreign_keys = ON")
-		migrate = true
+		migrateDb = true
 	} else {
-		user := viper.GetString("mysql-user")
-		password := viper.GetString("mysql-password")
-		address := viper.GetString("mysql-address")
-		dbname := viper.GetString("mysql-dbname")
-		params := viper.GetString("mysql-params")
+		user := viper.GetString("mysql_user")
+		password := viper.GetString("mysql_password")
+		address := viper.GetString("mysql_address")
+		dbname := viper.GetString("mysql_dbname")
+		params := viper.GetString("mysql_params")
 
 		db, err = gorm.Open("mysql", formatDSN(user, password, address, dbname, params))
 		if err != nil {
@@ -105,18 +103,13 @@ func run(cmd *cobra.Command, args []string) {
 		return "catalog_" + defaultTableName
 	}
 
-	if migrate {
+	if migrateDb {
 		log.Info("Migrating DB")
 		db.AutoMigrate(&model.CatalogModel{})
 		db.AutoMigrate(&model.TemplateModel{})
 		db.AutoMigrate(&model.VersionModel{})
 		db.AutoMigrate(&model.FileModel{})
 	}
-
-	refreshInterval := viper.GetInt("refresh-interval")
-	port := viper.GetInt("port")
-	cacheRoot := viper.GetString("cache")
-	validateOnly := viper.GetBool("validate")
 
 	m := manager.NewManager(cacheRoot, config, db)
 	go refresh(m, refreshInterval, validateOnly)
