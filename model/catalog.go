@@ -6,11 +6,12 @@ import (
 )
 
 type Catalog struct {
-	Name          string `json:"name"`
-	URL           string `json:"url"`
-	Branch        string `json:"branch"`
-	Commit        string `json:"commit"`
 	EnvironmentId string `json:"environmentId"`
+
+	Name   string `json:"name"`
+	URL    string `json:"url"`
+	Branch string `json:"branch"`
+	Commit string `json:"commit"`
 }
 
 type CatalogModel struct {
@@ -26,6 +27,12 @@ type CatalogResource struct {
 type CatalogCollection struct {
 	client.Collection
 	Data []CatalogResource `json:"data,omitempty"`
+}
+
+func GetCatalog(db *gorm.DB, id uint) *Catalog {
+	var catalogModel CatalogModel
+	db.First(&catalogModel, id)
+	return &catalogModel.Catalog
 }
 
 func LookupCatalog(db *gorm.DB, environmentId, name string) *Catalog {
@@ -50,34 +57,9 @@ func LookupCatalogs(db *gorm.DB, environmentId string) []Catalog {
 
 // TODO: return error
 func DeleteCatalog(db *gorm.DB, environmentId, name string) {
-	tx := db.Begin()
-
-	if err := tx.Where(&CatalogModel{
+	db.Where(&CatalogModel{
 		Catalog: Catalog{
-			Name:          name,
-			EnvironmentId: environmentId,
+			Name: name,
 		},
-	}).Delete(&CatalogModel{}).Error; err != nil {
-		tx.Rollback()
-	}
-
-	if err := tx.Where(&TemplateModel{
-		Template: Template{
-			Catalog:       name,
-			EnvironmentId: environmentId,
-		},
-	}).Delete(&TemplateModel{}).Error; err != nil {
-		tx.Rollback()
-	}
-
-	if err := tx.Where(&VersionModel{
-		Version: Version{
-			Catalog:       name,
-			EnvironmentId: environmentId,
-		},
-	}).Delete(&VersionModel{}).Error; err != nil {
-		tx.Rollback()
-	}
-
-	tx.Commit()
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").Delete(&CatalogModel{})
 }

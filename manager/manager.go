@@ -62,12 +62,12 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 		return nil
 	}
 
-	templates, versions, err := traverseFiles(repoPath)
+	templates, err := traverseFiles(repoPath)
 	if err != nil {
 		return err
 	}
 
-	return m.updateDb(catalog, templates, versions, commit)
+	return m.updateDb(catalog, templates, commit)
 }
 
 // TODO: move elsewhere

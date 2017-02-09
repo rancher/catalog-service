@@ -50,18 +50,18 @@ func URLEncoded(str string) string {
 	return u.String()
 }
 
-func generateVersionId(template model.Template, version model.Version) string {
+func generateVersionId(catalogName string, template model.Template, version model.Version) string {
 	if template.Base == "" {
-		return fmt.Sprintf("%s:%s:%d", template.Catalog, template.FolderName, version.Revision)
+		return fmt.Sprintf("%s:%s:%d", catalogName, template.FolderName, version.Revision)
 	}
-	return fmt.Sprintf("%s:%s*%s:%d", template.Catalog, template.Base, template.FolderName, version.Revision)
+	return fmt.Sprintf("%s:%s*%s:%d", catalogName, template.Base, template.FolderName, version.Revision)
 }
 
-func generateTemplateId(template model.Template) string {
+func generateTemplateId(catalogName string, template model.Template) string {
 	if template.Base == "" {
-		return fmt.Sprintf("%s:%s", template.Catalog, template.FolderName)
+		return fmt.Sprintf("%s:%s", catalogName, template.FolderName)
 	}
-	return fmt.Sprintf("%s:%s*%s", template.Catalog, template.Base, template.FolderName)
+	return fmt.Sprintf("%s:%s*%s", catalogName, template.Base, template.FolderName)
 }
 
 func catalogResource(catalog model.Catalog) *model.CatalogResource {
@@ -74,13 +74,13 @@ func catalogResource(catalog model.Catalog) *model.CatalogResource {
 	}
 }
 
-func templateResource(apiContext *api.ApiContext, template model.Template, versions []model.Version, rancherVersion string) *model.TemplateResource {
-	templateId := generateTemplateId(template)
+func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, versions []model.Version, rancherVersion string) *model.TemplateResource {
+	templateId := generateTemplateId(catalogName, template)
 
 	versionLinks := map[string]string{}
 	for _, version := range versions {
 		if utils.VersionBetween(version.MinimumRancherVersion, rancherVersion, version.MaximumRancherVersion) {
-			route := generateVersionId(template, version)
+			route := generateVersionId(catalogName, template, version)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 			versionLinks[version.Version] = URLEncoded(link)
 		}
@@ -100,9 +100,9 @@ func templateResource(apiContext *api.ApiContext, template model.Template, versi
 	}
 }
 
-func versionResource(apiContext *api.ApiContext, template model.Template, version model.Version, versions []model.Version, files []model.File, rancherVersion string) (*model.TemplateVersionResource, error) {
-	templateId := generateTemplateId(template)
-	versionId := generateVersionId(template, version)
+func versionResource(apiContext *api.ApiContext, catalogName string, template model.Template, version model.Version, versions []model.Version, files []model.File, rancherVersion string) (*model.TemplateVersionResource, error) {
+	templateId := generateTemplateId(catalogName, template)
+	versionId := generateVersionId(catalogName, template, version)
 
 	filesMap := map[string]string{}
 	for _, file := range files {
@@ -136,7 +136,7 @@ func versionResource(apiContext *api.ApiContext, template model.Template, versio
 	upgradeVersionLinks := map[string]string{}
 	for _, upgradeVersion := range versions {
 		if showUpgradeVersion(version, upgradeVersion, rancherVersion) {
-			route := generateVersionId(template, upgradeVersion)
+			route := generateVersionId(catalogName, template, upgradeVersion)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 			upgradeVersionLinks[upgradeVersion.Version] = URLEncoded(link)
 		}

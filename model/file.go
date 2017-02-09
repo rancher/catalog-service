@@ -3,11 +3,11 @@ package model
 import "github.com/jinzhu/gorm"
 
 type File struct {
-	Catalog       string `json:"catalogId"`
 	EnvironmentId string `json:"environmentId"`
-	Name          string `json:"name"`
-	Contents      string
-	VersionID     uint
+	VersionId     uint   `sql:"type:integer REFERENCES catalog_version(id) ON DELETE CASCADE"`
+
+	Name     string `json:"name"`
+	Contents string
 }
 
 type FileModel struct {
@@ -17,11 +17,13 @@ type FileModel struct {
 
 func LookupFiles(db *gorm.DB, catalog, environmentId string, versionId uint) []File {
 	var fileModels []FileModel
-	db.Where(&FileModel{
-		File: File{
-			VersionID: versionId,
-		},
-	}).Find(&fileModels)
+	db.Raw(`
+SELECT catalog_file.*
+FROM catalog_file
+WHERE (catalog_file.environment_id = ? OR catalog_file.environment_id = ?)
+AND catalog_file.version_id = ?
+`, environmentId, "global", versionId).Scan(&fileModels)
+
 	var files []File
 	for _, fileModel := range fileModels {
 		files = append(files, fileModel.File)

@@ -12,9 +12,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
+func traverseFiles(repoPath string) ([]model.Template, error) {
 	templateIndex := map[string]*model.Template{}
-	versionsIndex := map[string]*model.Version{}
 
 	if err := filepath.Walk(repoPath, func(fullPath string, f os.FileInfo, err error) error {
 		relativePath, err := filepath.Rel(repoPath, fullPath)
@@ -27,11 +26,11 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 			return nil
 		}
 
-		dir, filename := path.Split(relativePath)
+		_, filename := path.Split(relativePath)
 
 		switch {
 		case filename == "config.yml":
-			_, templateFolderName, parsedCorrectly := parse.TemplatePath(relativePath)
+			base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 			if !parsedCorrectly {
 				return nil
 			}
@@ -47,34 +46,42 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 				return err
 			}
 			template.Base = templatesBase
-			template.FolderName = templateFolderName
-			if existingTemplate, ok := templateIndex[dir]; ok {
+			template.FolderName = templateName
+
+			key := base + templateName
+
+			if existingTemplate, ok := templateIndex[key]; ok {
 				template.Icon = existingTemplate.Icon
 				template.IconFilename = existingTemplate.IconFilename
+				template.Versions = existingTemplate.Versions
 			}
-			templateIndex[dir] = &template
+			templateIndex[key] = &template
 			// TODO: just move this to the end of the function
 			//templates = append(templates, template)
 		case strings.HasPrefix(filename, "catalogIcon"):
-			_, _, parsedCorrectly := parse.TemplatePath(relativePath)
+			base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 			if !parsedCorrectly {
 				return nil
 			}
+
 			contents, err := ioutil.ReadFile(fullPath)
 			if err != nil {
 				// TODO
 				return nil
 				//return err
 			}
-			if _, ok := templateIndex[dir]; !ok {
-				templateIndex[dir] = &model.Template{}
+
+			key := base + templateName
+
+			if _, ok := templateIndex[key]; !ok {
+				templateIndex[key] = &model.Template{}
 			}
-			templateIndex[dir].Icon = []byte(contents)
-			templateIndex[dir].IconFilename = filename
+			templateIndex[key].Icon = []byte(contents)
+			templateIndex[key].IconFilename = filename
 			//case strings.ToLower(filename):
 			// TODO: determine if README is in template or version
 		default:
-			_, templateFolderName, revision, parsedCorrectly := parse.VersionPath(relativePath)
+			base, templateName, revision, parsedCorrectly := parse.VersionPath(relativePath)
 			if !parsedCorrectly {
 				return nil
 			}
@@ -85,58 +92,67 @@ func traverseFiles(repoPath string) ([]model.Template, []model.Version, error) {
 				return nil
 				//return err
 			}
-			if _, ok := versionsIndex[dir]; !ok {
-				versionsIndex[dir] = &model.Version{}
-				versionsIndex[dir].Template = templateFolderName
-				versionsIndex[dir].Revision = revision
-			}
-			versionsIndex[dir].Files = append(versionsIndex[dir].Files, model.File{
+
+			key := base + templateName
+			file := model.File{
 				Name:     filename,
 				Contents: string(contents),
-			})
+			}
 
+			if _, ok := templateIndex[key]; !ok {
+				templateIndex[key] = &model.Template{}
+			}
+			for i, version := range templateIndex[key].Versions {
+				if version.Revision == revision {
+					templateIndex[key].Versions[i].Files = append(version.Files, file)
+					return nil
+				}
+			}
+			templateIndex[key].Versions = append(templateIndex[key].Versions, model.Version{
+				Revision: revision,
+				Files:    []model.File{file},
+			})
 		}
 
 		return nil
 	}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	templates := []model.Template{}
 	for _, template := range templateIndex {
+		for i, version := range template.Versions {
+			var readme string
+			//fmt.Println(template.FolderName, version.Revision, len(version.Files))
+			for _, file := range version.Files {
+				if strings.ToLower(file.Name) == "readme.md" {
+					readme = file.Contents
+				}
+			}
+			var rancherCompose string
+			for _, file := range version.Files {
+				if file.Name == "rancher-compose.yml" {
+					rancherCompose = file.Contents
+				}
+			}
+			newVersion := version
+			if rancherCompose != "" {
+				var err error
+				newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
+				if err != nil {
+					return nil, err
+				}
+				newVersion.Revision = version.Revision
+				newVersion.Files = version.Files
+			}
+			newVersion.Readme = readme
+
+			template.Versions[i] = newVersion
+		}
 		templates = append(templates, *template)
 	}
 
-	versions := []model.Version{}
-	for _, version := range versionsIndex {
-		var readme string
-		for _, file := range version.Files {
-			if strings.ToLower(file.Name) == "readme.md" {
-				readme = file.Contents
-			}
-		}
-		var rancherCompose string
-		for _, file := range version.Files {
-			if file.Name == "rancher-compose.yml" {
-				rancherCompose = file.Contents
-			}
-		}
-		newVersion := *version
-		if rancherCompose != "" {
-			var err error
-			newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
-			if err != nil {
-				return nil, nil, err
-			}
-			newVersion.Template = version.Template
-			newVersion.Revision = version.Revision
-			newVersion.Files = version.Files
-		}
-		newVersion.Readme = readme
-		versions = append(versions, newVersion)
-	}
-
-	return templates, versions, nil
+	return templates, nil
 }
 
 func getTemplatesBase(filename string) (string, bool) {
