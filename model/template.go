@@ -25,10 +25,11 @@ type Template struct {
 	IconFilename   string `json:"iconFilename"`
 	Readme         string `json:"readme"`
 
-	Versions   []Version         `sql:"-"`
-	Category   string            `sql:"-"`
-	Categories []string          `sql:"-"`
-	Labels     map[string]string `sql:"-"`
+	Categories []string          `sql:"-" json:"categories"`
+	Labels     map[string]string `sql:"-" json:"labels"`
+
+	Versions []Version `sql:"-"`
+	Category string    `sql:"-"`
 }
 
 type TemplateModel struct {
@@ -59,25 +60,33 @@ AND catalog.name = ?
 AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
 `, environmentId, "global", catalog, base, folderName).Scan(&templateModel)
+
+	templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
+	templateModel.Labels = lookupLabels(db, templateModel.ID)
+
 	return &templateModel.Template
 }
 
 func LookupTemplates(db *gorm.DB, environmentId, category string) []Template {
 	var templateModels []TemplateModel
 
-	// TODO: category
+	// TODO: filter by category
 	db.Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&templateModels)
 
 	var templates []Template
 	for _, templateModel := range templateModels {
+		templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
+		templateModel.Labels = lookupLabels(db, templateModel.ID)
 		templates = append(templates, templateModel.Template)
 	}
+
 	return templates
 }
 
 func LookupCatalogTemplates(db *gorm.DB, environmentId, catalog, category string) []Template {
 	var templateModels []TemplateModel
 
+	// TODO: filter by category
 	db.Raw(`
 SELECT catalog_template.*
 FROM catalog_template, catalog
@@ -88,6 +97,8 @@ AND catalog.name = ?
 
 	var templates []Template
 	for _, templateModel := range templateModels {
+		templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
+		templateModel.Labels = lookupLabels(db, templateModel.ID)
 		templates = append(templates, templateModel.Template)
 	}
 	return templates
