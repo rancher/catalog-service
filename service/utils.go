@@ -74,11 +74,11 @@ func catalogResource(catalog model.Catalog) *model.CatalogResource {
 	}
 }
 
-func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, versions []model.Version, rancherVersion string) *model.TemplateResource {
+func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, rancherVersion string) *model.TemplateResource {
 	templateId := generateTemplateId(catalogName, template)
 
 	versionLinks := map[string]string{}
-	for _, version := range versions {
+	for _, version := range template.Versions {
 		if utils.VersionBetween(version.MinimumRancherVersion, rancherVersion, version.MaximumRancherVersion) {
 			route := generateVersionId(catalogName, template, version)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
@@ -100,12 +100,12 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 	}
 }
 
-func versionResource(apiContext *api.ApiContext, catalogName string, template model.Template, version model.Version, versions []model.Version, files []model.File, rancherVersion string) (*model.TemplateVersionResource, error) {
+func versionResource(apiContext *api.ApiContext, catalogName string, template model.Template, version model.Version, rancherVersion string) (*model.TemplateVersionResource, error) {
 	templateId := generateTemplateId(catalogName, template)
 	versionId := generateVersionId(catalogName, template, version)
 
 	filesMap := map[string]string{}
-	for _, file := range files {
+	for _, file := range version.Files {
 		filesMap[file.Name] = file.Contents
 	}
 
@@ -134,7 +134,7 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 	links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
 
 	upgradeVersionLinks := map[string]string{}
-	for _, upgradeVersion := range versions {
+	for _, upgradeVersion := range template.Versions {
 		if showUpgradeVersion(version, upgradeVersion, rancherVersion) {
 			route := generateVersionId(catalogName, template, upgradeVersion)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)

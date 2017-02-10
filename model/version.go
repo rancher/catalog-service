@@ -6,8 +6,7 @@ import (
 )
 
 type Version struct {
-	EnvironmentId string `json:"environmentId"`
-	TemplateId    uint   `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
+	TemplateId uint `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
 
 	Revision              int    `json:"revision"`
 	Version               string `json:"version"`
@@ -35,13 +34,12 @@ type TemplateVersionResource struct {
 	UpgradeVersionLinks map[string]string   `json:"upgradeVersionLinks"`
 }
 
-// TODO: needs a base filter (make sure to use a map)
-func LookupVersionModel(db *gorm.DB, environmentId, catalog, base, template string, revision int) *VersionModel {
+func LookupVersion(db *gorm.DB, environmentId, catalog, base, template string, revision int) *Version {
 	var versionModel VersionModel
 	db.Raw(`
 SELECT catalog_version.*
 FROM catalog_version, catalog_template, catalog
-WHERE (catalog_version.environment_id = ? OR catalog_version.environment_id = ?)
+WHERE (catalog.environment_id = ? OR catalog.environment_id = ?)
 AND catalog_version.template_id = catalog_template.id
 AND catalog_template.catalog_id = catalog.id
 AND catalog.name = ?
@@ -49,24 +47,23 @@ AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
 AND catalog_version.revision = ?
 `, environmentId, "global", catalog, base, template, revision).Scan(&versionModel)
-	return &versionModel
+
+	versionModel.Files = lookupFiles(db, versionModel.ID)
+
+	return &versionModel.Version
 }
 
-func LookupVersions(db *gorm.DB, environmentId, catalog, base, template string) []Version {
+func lookupVersions(db *gorm.DB, templateId uint) []Version {
 	var versionModels []VersionModel
-	db.Raw(`
-SELECT catalog_version.*
-FROM catalog_version, catalog_template, catalog
-WHERE (catalog_version.environment_id = ? OR catalog_version.environment_id = ?)
-AND catalog_version.template_id = catalog_template.id
-AND catalog_template.catalog_id = catalog.id
-AND catalog.name = ?
-AND catalog_template.base = ?
-AND catalog_template.folder_name = ?
-`, environmentId, "global", catalog, base, template).Scan(&versionModels)
+	db.Where(&VersionModel{
+		Version: Version{
+			TemplateId: templateId,
+		},
+	}).Find(&versionModels)
 
 	var versions []Version
 	for _, versionModel := range versionModels {
+		versionModel.Files = lookupFiles(db, versionModel.ID)
 		versions = append(versions, versionModel.Version)
 	}
 	return versions

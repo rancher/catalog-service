@@ -118,7 +118,6 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 
 		for _, version := range template.Versions {
 			version.TemplateId = templateModel.ID
-			version.EnvironmentId = catalog.EnvironmentId
 			versionModel := model.VersionModel{
 				Version: version,
 			}
@@ -129,7 +128,6 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 
 			for _, file := range version.Files {
 				file.VersionId = versionModel.ID
-				file.EnvironmentId = version.EnvironmentId
 				if err := tx.Create(&model.FileModel{
 					File: file,
 				}).Error; err != nil {
