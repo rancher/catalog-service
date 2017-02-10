@@ -26,6 +26,9 @@ func NewManager(cacheRoot string, config map[string]CatalogConfig, db *gorm.DB) 
 }
 
 func (m *Manager) RefreshAll() error {
+	if err := m.CreateConfigCatalogs(); err != nil {
+		return err
+	}
 	catalogs, err := m.lookupCatalogs("")
 	if err != nil {
 		return err
@@ -39,6 +42,11 @@ func (m *Manager) RefreshAll() error {
 }
 
 func (m *Manager) Refresh(environmentId string) error {
+	if environmentId == "global" {
+		if err := m.CreateConfigCatalogs(); err != nil {
+			return err
+		}
+	}
 	catalogs, err := m.lookupCatalogs(environmentId)
 	if err != nil {
 		return err

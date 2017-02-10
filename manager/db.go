@@ -3,6 +3,14 @@ package manager
 import "github.com/rancher/catalog-service/model"
 
 func (m *Manager) CreateConfigCatalogs() error {
+	if err := m.db.Where(&model.CatalogModel{
+		Catalog: model.Catalog{
+			EnvironmentId: "global",
+		},
+	}).Delete(&model.CatalogModel{}).Error; err != nil {
+		return err
+	}
+
 	for name, config := range m.config {
 		var catalogModel model.CatalogModel
 		if err := m.db.FirstOrCreate(&catalogModel, &model.CatalogModel{
