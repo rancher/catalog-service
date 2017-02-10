@@ -81,10 +81,14 @@ def client():
 def test_catalog_list(client):
     catalogs = client.list_catalog()
     assert len(catalogs) == 2
-    assert catalogs[0].name == 'updated'
-    assert catalogs[0].url == '/tmp/test-catalog'
-    assert catalogs[1].name == 'orig'
-    assert catalogs[1].url == 'https://github.com/rancher/test-catalog'
+
+    for catalog in catalogs:
+        if catalog.name == 'orig':
+            assert catalog.url == 'https://github.com/rancher/test-catalog'
+        elif catalog.name == 'updated':
+            assert catalog.url == '/tmp/test-catalog'
+        else:
+            assert False
 
 
 def test_get_catalog(client):

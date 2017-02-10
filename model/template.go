@@ -63,6 +63,7 @@ AND catalog_template.folder_name = ?
 
 	templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
 	templateModel.Labels = lookupLabels(db, templateModel.ID)
+	templateModel.Versions = lookupVersions(db, templateModel.ID)
 
 	return &templateModel.Template
 }
@@ -77,6 +78,7 @@ func LookupTemplates(db *gorm.DB, environmentId, category string) []Template {
 	for _, templateModel := range templateModels {
 		templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
 		templateModel.Labels = lookupLabels(db, templateModel.ID)
+		templateModel.Versions = lookupVersions(db, templateModel.ID)
 		templates = append(templates, templateModel.Template)
 	}
 
@@ -99,6 +101,7 @@ AND catalog.name = ?
 	for _, templateModel := range templateModels {
 		templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
 		templateModel.Labels = lookupLabels(db, templateModel.ID)
+		templateModel.Versions = lookupVersions(db, templateModel.ID)
 		templates = append(templates, templateModel.Template)
 	}
 	return templates

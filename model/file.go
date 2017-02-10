@@ -3,8 +3,7 @@ package model
 import "github.com/jinzhu/gorm"
 
 type File struct {
-	EnvironmentId string `json:"environmentId"`
-	VersionId     uint   `sql:"type:integer REFERENCES catalog_version(id) ON DELETE CASCADE"`
+	VersionId uint `sql:"type:integer REFERENCES catalog_version(id) ON DELETE CASCADE"`
 
 	Name     string `json:"name"`
 	Contents string
@@ -15,14 +14,13 @@ type FileModel struct {
 	File
 }
 
-func LookupFiles(db *gorm.DB, catalog, environmentId string, versionId uint) []File {
+func lookupFiles(db *gorm.DB, versionId uint) []File {
 	var fileModels []FileModel
-	db.Raw(`
-SELECT catalog_file.*
-FROM catalog_file
-WHERE (catalog_file.environment_id = ? OR catalog_file.environment_id = ?)
-AND catalog_file.version_id = ?
-`, environmentId, "global", versionId).Scan(&fileModels)
+	db.Where(&FileModel{
+		File: File{
+			VersionId: versionId,
+		},
+	}).Find(&fileModels)
 
 	var files []File
 	for _, fileModel := range fileModels {
