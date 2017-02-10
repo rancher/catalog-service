@@ -152,6 +152,35 @@ def test_get_template(client):
     assert resp['folderName'] == 'k8s'
 
 
+def test_template_category(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:nfs-server'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert len(resp['categories']) == 1
+    assert resp['categories'][0] == 'Test'
+
+
+def test_template_categories(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:categories'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert len(resp['categories']) == 2
+    assert resp['categories'][0] == 'category1'
+    assert resp['categories'][1] == 'category2'
+
+
+def test_template_labels(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:labels'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['labels'] is not None
+    assert resp['labels']['key1'] == 'value1'
+    assert resp['labels']['key2'] == 'value2'
+
+
 def test_template_version_links(client):
     url = 'http://localhost:8088/v1-catalog/templates/orig:many-versions'
     response = requests.get(url, headers=DEFAULT_HEADERS)
