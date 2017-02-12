@@ -109,16 +109,6 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 		filesMap[file.Name] = file.Contents
 	}
 
-	var bindings map[string]model.Bindings
-	dockerCompose, ok := filesMap["docker-compose.yml"]
-	if ok {
-		var err error
-		bindings, err = parse.Bindings([]byte(dockerCompose))
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	var questions []model.Question
 	rancherCompose, ok := filesMap["rancher-compose.yml"]
 	if ok {
@@ -149,7 +139,6 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 			Links: links,
 		},
 		Version:             version,
-		Bindings:            bindings,
 		Files:               filesMap,
 		Questions:           questions,
 		UpgradeVersionLinks: upgradeVersionLinks,

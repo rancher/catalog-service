@@ -319,15 +319,6 @@ def test_template_version_questions(client):
     assert questions[10]['type'] == 'unknown'
 
 
-def test_template_version_bindings(client):
-    url = 'http://localhost:8088/v1-catalog/templates/orig:k8s:1'
-    response = requests.get(url, headers=DEFAULT_HEADERS)
-    assert response.status_code == 200
-    resp = response.json()
-    bindings = resp['bindings']
-    assert bindings is not None
-
-
 def test_refresh(client):
     url = 'http://localhost:8088/v1-catalog/templates/updated:many-versions:14'
     response = requests.get(url, headers=DEFAULT_HEADERS)
