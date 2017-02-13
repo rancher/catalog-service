@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -62,7 +63,11 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
 		template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
 
 		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
-			iconReader := bytes.NewReader(template.Icon)
+			icon, err := base64.StdEncoding.DecodeString(template.Icon)
+			if err != nil {
+				return nil
+			}
+			iconReader := bytes.NewReader(icon)
 			http.ServeContent(w, r, template.IconFilename, time.Time{}, iconReader)
 			return nil
 		} else if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
