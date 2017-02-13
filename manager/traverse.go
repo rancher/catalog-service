@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path"
@@ -75,7 +76,7 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 			if _, ok := templateIndex[key]; !ok {
 				templateIndex[key] = &model.Template{}
 			}
-			templateIndex[key].Icon = []byte(contents)
+			templateIndex[key].Icon = base64.StdEncoding.EncodeToString([]byte(contents))
 			templateIndex[key].IconFilename = filename
 		case strings.HasPrefix(strings.ToLower(filename), "readme.md"):
 			base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)

@@ -21,7 +21,7 @@ type Template struct {
 	FolderName     string `json:"folderName"`
 	Catalog        string `json:"catalogId"`
 	Base           string `json:"templateBase"`
-	Icon           []byte `json:"icon"`
+	Icon           string `json:"icon"`
 	IconFilename   string `json:"iconFilename"`
 	Readme         string `json:"readme"`
 
