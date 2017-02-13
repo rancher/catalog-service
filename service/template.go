@@ -21,16 +21,11 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
 	if catalog == "" {
 		catalog = r.URL.Query().Get("catalog")
 	}
-	category := r.URL.Query().Get("category")
-	//categoryNe := r.URL.Query().Get("category_ne")
 	rancherVersion := r.URL.Query().Get("rancherVersion")
+	categories, _ := r.URL.Query()["category"]
+	categoriesNe, _ := r.URL.Query()["category_ne"]
 
-	var templates []model.Template
-	if catalog == "" {
-		templates = model.LookupTemplates(db, envId, category)
-	} else {
-		templates = model.LookupCatalogTemplates(db, envId, catalog, category)
-	}
+	templates := model.LookupTemplates(db, envId, catalog, categories, categoriesNe)
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
@@ -81,7 +76,6 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
 		template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
 		version := model.LookupVersion(db, envId, catalogName, templateBase, templateName, revisionNumber)
 
-		// TODO: version READMEs
 		if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
 			w.Write([]byte(version.Readme))
 			return nil

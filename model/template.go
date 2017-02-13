@@ -1,6 +1,9 @@
 package model
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/go-rancher/client"
 )
@@ -68,11 +71,42 @@ AND catalog_template.folder_name = ?
 	return &templateModel.Template
 }
 
-func LookupTemplates(db *gorm.DB, environmentId, category string) []Template {
+func LookupTemplates(db *gorm.DB, environmentId, catalog string, categories, categoriesNe []string) []Template {
 	var templateModels []TemplateModel
 
-	// TODO: filter by category
-	db.Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&templateModels)
+	params := []interface{}{environmentId, "global"}
+	if catalog != "" {
+		params = append(params, catalog)
+	}
+	for _, category := range categories {
+		params = append(params, category)
+	}
+	for _, categoryNe := range categoriesNe {
+		params = append(params, categoryNe)
+	}
+
+	query := `
+SELECT catalog_template.*
+FROM catalog_template, catalog_template_category, catalog_category, catalog
+WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
+AND catalog_template.id = catalog_template_category.template_id
+AND catalog_category.id = catalog_template_category.category_id
+AND catalog_template.catalog_id = catalog.id`
+
+	if catalog != "" {
+		query += `
+AND catalog.name = ?`
+	}
+	if len(categories) > 0 {
+		query += fmt.Sprintf(`
+AND catalog_category.name IN (%s)`, listQuery(len(categories)))
+	}
+	if len(categoriesNe) > 0 {
+		query += fmt.Sprintf(`
+AND catalog_category.name NOT IN (%s)`, listQuery(len(categoriesNe)))
+	}
+
+	db.Raw(query, params...).Find(&templateModels)
 
 	var templates []Template
 	for _, templateModel := range templateModels {
@@ -81,28 +115,13 @@ func LookupTemplates(db *gorm.DB, environmentId, category string) []Template {
 		templateModel.Versions = lookupVersions(db, templateModel.ID)
 		templates = append(templates, templateModel.Template)
 	}
-
 	return templates
 }
 
-func LookupCatalogTemplates(db *gorm.DB, environmentId, catalog, category string) []Template {
-	var templateModels []TemplateModel
-
-	// TODO: filter by category
-	db.Raw(`
-SELECT catalog_template.*
-FROM catalog_template, catalog
-WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
-AND catalog_template.catalog_id = catalog.id
-AND catalog.name = ?
-`, environmentId, "global", catalog).Scan(&templateModels)
-
-	var templates []Template
-	for _, templateModel := range templateModels {
-		templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
-		templateModel.Labels = lookupLabels(db, templateModel.ID)
-		templateModel.Versions = lookupVersions(db, templateModel.ID)
-		templates = append(templates, templateModel.Template)
+func listQuery(size int) string {
+	var query string
+	for i := 0; i < size; i++ {
+		query += " ? ,"
 	}
-	return templates
+	return fmt.Sprintf("(%s)", strings.TrimSuffix(query, ","))
 }

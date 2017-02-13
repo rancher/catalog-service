@@ -99,11 +99,11 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) e
 		return errors.New("Missing paramater catalog")
 	}
 
-	category := r.URL.Query().Get("category")
-	//categoryNe := r.URL.Query().Get("category_ne")
 	rancherVersion := r.URL.Query().Get("rancherVersion")
+	categories, _ := r.URL.Query()["category"]
+	categoriesNe, _ := r.URL.Query()["category_ne"]
 
-	templates := model.LookupCatalogTemplates(db, envId, catalogName, category)
+	templates := model.LookupTemplates(db, envId, catalogName, categories, categoriesNe)
 
 	// TODO: this is duplicated
 	resp := model.TemplateCollection{}
