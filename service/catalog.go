@@ -81,8 +81,10 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
 func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
 	vars := mux.Vars(r)
 
-	// TODO error checking
-	name := vars["catalog"]
+	name, ok := vars["catalog"]
+	if !ok {
+		return errors.New("Missing paramater catalog")
+	}
 
 	model.DeleteCatalog(db, envId, name)
 
@@ -100,10 +102,11 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) e
 	}
 
 	rancherVersion := r.URL.Query().Get("rancherVersion")
+	templateBaseEq := r.URL.Query().Get("templateBase_eq")
 	categories, _ := r.URL.Query()["category"]
 	categoriesNe, _ := r.URL.Query()["category_ne"]
 
-	templates := model.LookupTemplates(db, envId, catalogName, categories, categoriesNe)
+	templates := model.LookupTemplates(db, envId, catalogName, templateBaseEq, categories, categoriesNe)
 
 	// TODO: this is duplicated
 	resp := model.TemplateCollection{}
