@@ -71,12 +71,15 @@ AND catalog_template.folder_name = ?
 	return &templateModel.Template
 }
 
-func LookupTemplates(db *gorm.DB, environmentId, catalog string, categories, categoriesNe []string) []Template {
+func LookupTemplates(db *gorm.DB, environmentId, catalog, templateBaseEq string, categories, categoriesNe []string) []Template {
 	var templateModels []TemplateModel
 
 	params := []interface{}{environmentId, "global"}
 	if catalog != "" {
 		params = append(params, catalog)
+	}
+	if templateBaseEq != "" {
+		params = append(params, templateBaseEq)
 	}
 	for _, category := range categories {
 		params = append(params, category)
@@ -96,6 +99,10 @@ AND catalog_template.catalog_id = catalog.id`
 	if catalog != "" {
 		query += `
 AND catalog.name = ?`
+	}
+	if templateBaseEq != "" {
+		query += `
+AND catalog_template.base = ?`
 	}
 	if len(categories) > 0 {
 		query += fmt.Sprintf(`
