@@ -88,6 +88,7 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 
 	router.Methods("GET").Path("/v1-catalog/templates").Name("GetTemplates").Handler(handler(schemas, false, getTemplates))
 	router.Methods("GET").Path("/v1-catalog/templates/{catalog_template_version}").Name("GetTemplate").Handler(handler(schemas, false, getTemplate))
+	router.Methods("GET").Path("/v1-catalog/templateversions/{catalog_template_version}").Name("GetTemplate").Handler(handler(schemas, false, getTemplate))
 	router.Methods("POST").Path("/v1-catalog/templates").Name("RefreshTemplates").Handler(handler(schemas, false, refreshTemplates))
 	router.GetRoute("RefreshTemplates").Queries("action", "refresh")
 
