@@ -53,11 +53,10 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 			if existingTemplate, ok := templateIndex[key]; ok {
 				template.Icon = existingTemplate.Icon
 				template.IconFilename = existingTemplate.IconFilename
+				template.Readme = existingTemplate.Readme
 				template.Versions = existingTemplate.Versions
 			}
 			templateIndex[key] = &template
-			// TODO: just move this to the end of the function
-			//templates = append(templates, template)
 		case strings.HasPrefix(filename, "catalogIcon"):
 			base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 			if !parsedCorrectly {
@@ -78,8 +77,30 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 			}
 			templateIndex[key].Icon = []byte(contents)
 			templateIndex[key].IconFilename = filename
-			//case strings.ToLower(filename):
-			// TODO: determine if README is in template or version
+		case strings.HasPrefix(strings.ToLower(filename), "readme.md"):
+			base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
+			if !parsedCorrectly {
+				return nil
+			}
+
+			_, _, _, parsedCorrectly = parse.VersionPath(relativePath)
+			if parsedCorrectly {
+				return nil
+			}
+
+			contents, err := ioutil.ReadFile(fullPath)
+			if err != nil {
+				// TODO
+				return nil
+				//return err
+			}
+
+			key := base + templateName
+
+			if _, ok := templateIndex[key]; !ok {
+				templateIndex[key] = &model.Template{}
+			}
+			templateIndex[key].Readme = string(contents)
 		default:
 			base, templateName, revision, parsedCorrectly := parse.VersionPath(relativePath)
 			if !parsedCorrectly {
@@ -123,7 +144,6 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 	for _, template := range templateIndex {
 		for i, version := range template.Versions {
 			var readme string
-			//fmt.Println(template.FolderName, version.Revision, len(version.Files))
 			for _, file := range version.Files {
 				if strings.ToLower(file.Name) == "readme.md" {
 					readme = file.Contents

@@ -65,6 +65,9 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
 			iconReader := bytes.NewReader(template.Icon)
 			http.ServeContent(w, r, template.IconFilename, time.Time{}, iconReader)
 			return nil
+		} else if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
+			w.Write([]byte(template.Readme))
+			return nil
 		}
 
 		apiContext.Write(templateResource(apiContext, catalogName, *template, rancherVersion))
