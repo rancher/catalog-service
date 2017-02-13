@@ -88,6 +88,9 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 
 	links := map[string]string{}
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
+	if template.Readme != "" {
+		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", templateId)))
+	}
 
 	return &model.TemplateResource{
 		Resource: client.Resource{
@@ -121,7 +124,9 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 
 	links := map[string]string{}
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
-	links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
+	if version.Readme != "" {
+		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
+	}
 
 	upgradeVersionLinks := map[string]string{}
 	for _, upgradeVersion := range template.Versions {
