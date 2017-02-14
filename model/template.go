@@ -19,7 +19,7 @@ type Template struct {
 	Path           string `json:"path"`
 	Maintainer     string `json:"maintainer"`
 	License        string `json:"license"`
-	ProjectURL     string `json:"projectURL"`
+	ProjectURL     string `json:"projectURL" yaml:"projectURL"`
 	UpgradeFrom    string `json:"upgradeFrom"`
 	FolderName     string `json:"folderName"`
 	Catalog        string `json:"catalogId"`
