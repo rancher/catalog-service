@@ -64,11 +64,18 @@ AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
 `, environmentId, "global", catalog, base, folderName).Scan(&templateModel)
 
+	fillInTemplate(db, &templateModel)
+	return &templateModel.Template
+}
+
+func fillInTemplate(db *gorm.DB, templateModel *TemplateModel) {
+	catalog := GetCatalog(db, templateModel.CatalogId)
+	if catalog != nil {
+		templateModel.Catalog = catalog.Name
+	}
 	templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
 	templateModel.Labels = lookupLabels(db, templateModel.ID)
 	templateModel.Versions = lookupVersions(db, templateModel.ID)
-
-	return &templateModel.Template
 }
 
 func LookupTemplates(db *gorm.DB, environmentId, catalog, templateBaseEq string, categories, categoriesNe []string) []Template {
@@ -117,9 +124,7 @@ AND catalog_category.name NOT IN (%s)`, listQuery(len(categoriesNe)))
 
 	var templates []Template
 	for _, templateModel := range templateModels {
-		templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
-		templateModel.Labels = lookupLabels(db, templateModel.ID)
-		templateModel.Versions = lookupVersions(db, templateModel.ID)
+		fillInTemplate(db, &templateModel)
 		templates = append(templates, templateModel.Template)
 	}
 	return templates
