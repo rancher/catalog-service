@@ -91,6 +91,9 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 	if template.Readme != "" {
 		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", templateId)))
 	}
+	if template.ProjectURL != "" {
+		links["project"] = template.ProjectURL
+	}
 
 	return &model.TemplateResource{
 		Resource: client.Resource{
@@ -128,6 +131,9 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
 	} else if template.Readme != "" {
 		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", templateId)))
+	}
+	if template.ProjectURL != "" {
+		links["project"] = template.ProjectURL
 	}
 
 	upgradeVersionLinks := map[string]string{}

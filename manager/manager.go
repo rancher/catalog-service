@@ -78,17 +78,3 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 
 	return m.updateDb(catalog, templates, commit)
 }
-
-// TODO: move elsewhere
-type TemplateConfig struct {
-	Name           string            `yaml:"name"`
-	Category       string            `yaml:"category"`
-	Description    string            `yaml:"description"`
-	Version        string            `yaml:"version"`
-	Maintainer     string            `yaml:"maintainer"`
-	License        string            `yaml:"license"`
-	ProjectURL     string            `yaml:"projectURL"`
-	IsSystem       string            `yaml:"isSystem"`
-	DefaultVersion string            `yaml:"version"`
-	Labels         map[string]string `yaml:"version"`
-}
