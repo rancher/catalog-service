@@ -1,6 +1,7 @@
 package manager
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/catalog-service/model"
 )
@@ -61,6 +62,7 @@ func (m *Manager) Refresh(environmentId string) error {
 }
 
 func (m *Manager) refreshCatalog(catalog model.Catalog) error {
+
 	repoPath, commit, err := m.prepareRepoPath(catalog)
 	if err != nil {
 		return err
@@ -68,6 +70,7 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 
 	// Catalog is already up to date
 	if commit == catalog.Commit {
+		log.Debugf("Catalog %s is already up to date", catalog.Name)
 		return nil
 	}
 
@@ -75,6 +78,8 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 	if err != nil {
 		return err
 	}
+
+	log.Debugf("Updating catalog %s", catalog.Name)
 
 	return m.updateDb(catalog, templates, commit)
 }
