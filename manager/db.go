@@ -3,11 +3,7 @@ package manager
 import "github.com/rancher/catalog-service/model"
 
 func (m *Manager) CreateConfigCatalogs() error {
-	if err := m.db.Where(&model.CatalogModel{
-		Catalog: model.Catalog{
-			EnvironmentId: "global",
-		},
-	}).Delete(&model.CatalogModel{}).Error; err != nil {
+	if err := m.removeCatalogsNotInConfig(); err != nil {
 		return err
 	}
 
@@ -22,6 +18,28 @@ func (m *Manager) CreateConfigCatalogs() error {
 			},
 		}).Error; err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (m *Manager) removeCatalogsNotInConfig() error {
+	var catalogs []model.CatalogModel
+	m.db.Where(&model.CatalogModel{
+		Catalog: model.Catalog{
+			EnvironmentId: "global",
+		},
+	}).Find(&catalogs)
+	for _, catalog := range catalogs {
+		if _, ok := m.config[catalog.Name]; !ok {
+			if err := m.db.Where(&model.CatalogModel{
+				Catalog: model.Catalog{
+					EnvironmentId: "global",
+					Name:          catalog.Name,
+				},
+			}).Delete(&model.CatalogModel{}).Error; err != nil {
+				return err
+			}
 		}
 	}
 	return nil
