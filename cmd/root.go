@@ -28,6 +28,8 @@ var (
 	sqlite          bool
 	migrateDb       bool
 	debug           bool
+	version         bool
+	VERSION         string
 )
 
 var RootCmd = &cobra.Command{
@@ -47,6 +49,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&sqlite, "sqlite", false, "")
 	RootCmd.PersistentFlags().BoolVar(&migrateDb, "migrate-db", false, "")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "")
+	RootCmd.PersistentFlags().BoolVarP(&version, "version", "v", false, "")
 
 	RootCmd.PersistentFlags().String("mysql-user", "", "")
 	viper.BindPFlag("mysql_user", RootCmd.PersistentFlags().Lookup("mysql-user"))
@@ -65,6 +68,10 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
+	if version {
+		fmt.Println(VERSION)
+		return
+	}
 	if debug {
 		log.SetLevel(log.DebugLevel)
 	}
