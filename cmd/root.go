@@ -145,9 +145,6 @@ func formatDSN(user, password, address, dbname, params string) string {
 }
 
 func refresh(m *manager.Manager, refreshInterval int, validateOnly bool) {
-	if err := m.CreateConfigCatalogs(); err != nil {
-		log.Fatalf("Failed to create catalogs from config file: %v", err)
-	}
 	if err := m.RefreshAll(); err != nil {
 		log.Fatalf("Failed to do initial refresh of catalogs: %v", err)
 	}
