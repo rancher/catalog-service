@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -67,12 +65,8 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	config, err := readConfig(configFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	var db *gorm.DB
+	var err error
 	if sqlite {
 		db, err = gorm.Open("sqlite3", "local.db")
 		if err != nil {
@@ -116,7 +110,7 @@ func run(cmd *cobra.Command, args []string) {
 		db.AutoMigrate(&model.FileModel{})
 	}
 
-	m := manager.NewManager(cacheRoot, config, db)
+	m := manager.NewManager(cacheRoot, configFile, db)
 	go refresh(m, refreshInterval, validateOnly)
 	if validateOnly {
 		select {}
@@ -126,7 +120,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), &service.MuxWrapper{
 		IsReady: false,
-		Router:  service.NewRouter(manager.NewManager(cacheRoot, config, db), db),
+		Router:  service.NewRouter(m, db),
 	}))
 }
 
@@ -148,19 +142,6 @@ func formatDSN(user, password, address, dbname, params string) string {
 		Params: paramsMap,
 	}
 	return mysqlConfig.FormatDSN()
-}
-
-func readConfig(configFile string) (map[string]manager.CatalogConfig, error) {
-	configContents, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var config map[string]map[string]manager.CatalogConfig
-	if err = json.Unmarshal(configContents, &config); err != nil {
-		return nil, err
-	}
-	return config["catalogs"], nil
 }
 
 func refresh(m *manager.Manager, refreshInterval int, validateOnly bool) {
