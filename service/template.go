@@ -96,6 +96,11 @@ func refreshTemplates(w http.ResponseWriter, r *http.Request, envId string) erro
 	if err := m.Refresh(envId); err != nil {
 		return err
 	}
+	if envId != "global" {
+		if err := m.Refresh("global"); err != nil {
+			return err
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }

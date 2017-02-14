@@ -27,6 +27,7 @@ var (
 	validateOnly    bool
 	sqlite          bool
 	migrateDb       bool
+	debug           bool
 )
 
 var RootCmd = &cobra.Command{
@@ -38,15 +39,14 @@ func init() {
 	viper.SetEnvPrefix("catalog_service")
 	viper.AutomaticEnv()
 
-	RootCmd.PersistentFlags().Int("refresh-interval", 60, "")
-	viper.BindPFlag("refresh_interval", RootCmd.PersistentFlags().Lookup("refresh-interval"))
-
+	RootCmd.PersistentFlags().IntVar(&refreshInterval, "refresh-interval", 60, "")
 	RootCmd.PersistentFlags().IntVarP(&port, "port", "p", 8088, "")
 	RootCmd.PersistentFlags().StringVar(&cacheRoot, "cache", "./cache", "")
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", "./repo.json", "")
 	RootCmd.PersistentFlags().BoolVar(&validateOnly, "validate", false, "")
 	RootCmd.PersistentFlags().BoolVar(&sqlite, "sqlite", false, "")
 	RootCmd.PersistentFlags().BoolVar(&migrateDb, "migrate-db", false, "")
+	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "")
 
 	RootCmd.PersistentFlags().String("mysql-user", "", "")
 	viper.BindPFlag("mysql_user", RootCmd.PersistentFlags().Lookup("mysql-user"))
@@ -65,6 +65,10 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	var db *gorm.DB
 	var err error
 	if sqlite {
@@ -116,7 +120,7 @@ func run(cmd *cobra.Command, args []string) {
 		select {}
 	}
 
-	log.Infof("Starting Catalog Service on port %d", port)
+	log.Infof("Starting Catalog Service (port %d, refresh interval %d seconds)", port, refreshInterval)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), &service.MuxWrapper{
 		IsReady: false,
@@ -151,8 +155,9 @@ func refresh(m *manager.Manager, refreshInterval int, validateOnly bool) {
 	if validateOnly {
 		os.Exit(0)
 	}
+	// TODO: don't want to have refresh running twice at the same time
 	for range time.Tick(time.Duration(refreshInterval) * time.Second) {
-		// TODO: don't want to have refresh running twice at the same time
+		log.Debugf("Performing automatic refresh of all catalogs (interval %d seconds)", refreshInterval)
 		go m.RefreshAll()
 	}
 }
