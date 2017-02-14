@@ -120,7 +120,7 @@ func run(cmd *cobra.Command, args []string) {
 		select {}
 	}
 
-	log.Infof("Starting Catalog Service on port %d", port)
+	log.Infof("Starting Catalog Service (port %d, refresh interval %d seconds)", port, refreshInterval)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), &service.MuxWrapper{
 		IsReady: false,
@@ -155,8 +155,9 @@ func refresh(m *manager.Manager, refreshInterval int, validateOnly bool) {
 	if validateOnly {
 		os.Exit(0)
 	}
+	// TODO: don't want to have refresh running twice at the same time
 	for range time.Tick(time.Duration(refreshInterval) * time.Second) {
-		// TODO: don't want to have refresh running twice at the same time
+		log.Debugf("Performing automatic refresh of all catalogs (interval %d seconds)", refreshInterval)
 		go m.RefreshAll()
 	}
 }
