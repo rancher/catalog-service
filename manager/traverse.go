@@ -22,6 +22,7 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 			return err
 		}
 
+		// TODO: can parse.TemplatesPath just be used for this?
 		templatesBase, parsedCorrectly := getTemplatesBase(relativePath)
 		if !parsedCorrectly {
 			return nil
@@ -86,7 +87,7 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 
 			_, _, _, parsedCorrectly = parse.VersionPath(relativePath)
 			if parsedCorrectly {
-				return nil
+				return handleFile(templateIndex, fullPath, relativePath, filename)
 			}
 
 			contents, err := ioutil.ReadFile(fullPath)
@@ -103,37 +104,7 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 			}
 			templateIndex[key].Readme = string(contents)
 		default:
-			base, templateName, revision, parsedCorrectly := parse.VersionPath(relativePath)
-			if !parsedCorrectly {
-				return nil
-			}
-
-			contents, err := ioutil.ReadFile(fullPath)
-			if err != nil {
-				// TODO
-				return nil
-				//return err
-			}
-
-			key := base + templateName
-			file := model.File{
-				Name:     filename,
-				Contents: string(contents),
-			}
-
-			if _, ok := templateIndex[key]; !ok {
-				templateIndex[key] = &model.Template{}
-			}
-			for i, version := range templateIndex[key].Versions {
-				if version.Revision == revision {
-					templateIndex[key].Versions[i].Files = append(version.Files, file)
-					return nil
-				}
-			}
-			templateIndex[key].Versions = append(templateIndex[key].Versions, model.Version{
-				Revision: revision,
-				Files:    []model.File{file},
-			})
+			return handleFile(templateIndex, fullPath, relativePath, filename)
 		}
 
 		return nil
@@ -174,6 +145,42 @@ func traverseFiles(repoPath string) ([]model.Template, error) {
 	}
 
 	return templates, nil
+}
+
+func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath, filename string) error {
+	base, templateName, revision, parsedCorrectly := parse.VersionPath(relativePath)
+	if !parsedCorrectly {
+		return nil
+	}
+
+	contents, err := ioutil.ReadFile(fullPath)
+	if err != nil {
+		// TODO
+		return nil
+		//return err
+	}
+
+	key := base + templateName
+	file := model.File{
+		Name:     filename,
+		Contents: string(contents),
+	}
+
+	if _, ok := templateIndex[key]; !ok {
+		templateIndex[key] = &model.Template{}
+	}
+	for i, version := range templateIndex[key].Versions {
+		if version.Revision == revision {
+			templateIndex[key].Versions[i].Files = append(version.Files, file)
+			return nil
+		}
+	}
+	templateIndex[key].Versions = append(templateIndex[key].Versions, model.Version{
+		Revision: revision,
+		Files:    []model.File{file},
+	})
+
+	return nil
 }
 
 func getTemplatesBase(filename string) (string, bool) {
