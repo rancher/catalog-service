@@ -5,27 +5,25 @@ import (
 	"github.com/rancher/catalog-service/model"
 )
 
-// TODO: move elsewhere
-type CatalogConfig struct {
-	URL    string
-	Branch string
-}
-
 type Manager struct {
-	cacheRoot string
-	config    map[string]CatalogConfig
-	db        *gorm.DB
+	cacheRoot  string
+	configFile string
+	config     map[string]CatalogConfig
+	db         *gorm.DB
 }
 
-func NewManager(cacheRoot string, config map[string]CatalogConfig, db *gorm.DB) *Manager {
+func NewManager(cacheRoot string, configFile string, db *gorm.DB) *Manager {
 	return &Manager{
-		cacheRoot: cacheRoot,
-		config:    config,
-		db:        db,
+		cacheRoot:  cacheRoot,
+		configFile: configFile,
+		db:         db,
 	}
 }
 
 func (m *Manager) RefreshAll() error {
+	if err := m.readConfig(); err != nil {
+		return err
+	}
 	if err := m.CreateConfigCatalogs(); err != nil {
 		return err
 	}
@@ -43,6 +41,9 @@ func (m *Manager) RefreshAll() error {
 
 func (m *Manager) Refresh(environmentId string) error {
 	if environmentId == "global" {
+		if err := m.readConfig(); err != nil {
+			return err
+		}
 		if err := m.CreateConfigCatalogs(); err != nil {
 			return err
 		}
