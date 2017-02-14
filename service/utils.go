@@ -126,6 +126,8 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
 	if version.Readme != "" {
 		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
+	} else if template.Readme != "" {
+		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", templateId)))
 	}
 
 	upgradeVersionLinks := map[string]string{}
