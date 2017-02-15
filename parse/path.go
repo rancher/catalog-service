@@ -56,13 +56,18 @@ func TemplatePath(path string) (string, string, bool) {
 	base := ""
 	dirSplit := strings.SplitN(split[0], "-", 2)
 	if len(dirSplit) > 1 {
-		base = dirSplit[1]
+		base = dirSplit[0]
 	}
 
 	return base, split[1], true
 }
 
 func VersionPath(path string) (string, string, int, bool) {
+	base, template, parsedCorrectly := TemplatePath(path)
+	if !parsedCorrectly {
+		return "", "", 0, false
+	}
+
 	split := strings.Split(path, "/")
 	if len(split) < 3 {
 		return "", "", 0, false
@@ -73,11 +78,5 @@ func VersionPath(path string) (string, string, int, bool) {
 		return "", "", 0, false
 	}
 
-	base := ""
-	dirSplit := strings.SplitN(split[0], "-", 2)
-	if len(dirSplit) > 1 {
-		base = dirSplit[1]
-	}
-
-	return base, split[1], revision, true
+	return base, template, revision, true
 }

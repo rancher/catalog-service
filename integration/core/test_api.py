@@ -153,7 +153,13 @@ def test_get_template(client):
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
+
+    assert resp['catalogId'] == 'orig'
     assert resp['folderName'] == 'k8s'
+    assert resp['defaultVersion'] == 'v1.3.0-rancher4'
+
+    assert len(resp['categories']) == 1
+    assert resp['categories'][0] == 'System'
 
 
 def test_template_category(client):
@@ -173,6 +179,35 @@ def test_template_categories(client):
     assert len(resp['categories']) == 2
     assert resp['categories'][0] == 'category1'
     assert resp['categories'][1] == 'category2'
+
+
+def test_template_without_categories(client):
+    templates = client.list_template()
+    assert len(templates) > 0
+
+    no_categories_template_found = False
+    for template in templates:
+        if template.folderName == 'no-categories':
+            no_categories_template_found = True
+            break
+
+    assert no_categories_template_found
+
+
+def test_machine_template(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:machine*vultr'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['templateBase'] == 'machine'
+
+    url = 'http://localhost:8088/v1-catalog/templates/orig:machine*vultr:0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert len(resp['files']) == 2
+    assert 'rancher-compose.yml' in resp['files']
+    assert 'url' in resp['files']
 
 
 def test_template_labels(client):
