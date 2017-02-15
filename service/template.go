@@ -31,7 +31,10 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
 		catalog := model.GetCatalog(db, template.CatalogId)
-		resp.Data = append(resp.Data, *templateResource(apiContext, catalog.Name, template, rancherVersion))
+		templateResource := templateResource(apiContext, catalog.Name, template, rancherVersion)
+		if len(templateResource.VersionLinks) > 0 {
+			resp.Data = append(resp.Data, *templateResource)
+		}
 	}
 
 	resp.Actions = map[string]string{

@@ -105,13 +105,13 @@ def test_catalog_commit(client):
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] == '0af3fe8715185b78e78580def88a493f4b3c5556'
+    assert resp['commit'] == '95eef2a2834bc5b422858e1ea0b32e88d246368f'
 
     url = 'http://localhost:8088/v1-catalog/catalogs/updated'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] != '0af3fe8715185b78e78580def88a493f4b3c5556'
+    assert resp['commit'] != '95eef2a2834bc5b422858e1ea0b32e88d246368f'
 
 
 def test_create_and_delete_catalog(client):
@@ -181,6 +181,31 @@ def test_template_categories(client):
     assert resp['categories'][1] == 'category2'
 
 
+def test_category_filter(client):
+    base_url = 'http://localhost:8088/v1-catalog/templates?category='
+    for category in ('category1', 'category2', 'System'):
+        response = requests.get(base_url + category, headers=DEFAULT_HEADERS)
+        assert response.status_code == 200
+        resp = response.json()
+        assert resp['data'] is not None
+
+        for template in resp['data']:
+            assert category in template['categories']
+
+
+def test_category_ne_filter(client):
+    base_url = 'http://localhost:8088/v1-catalog/templates?category_ne='
+    # for category in ('category1', 'category2', 'System'):
+    for category in ('System'):
+        response = requests.get(base_url + category, headers=DEFAULT_HEADERS)
+        assert response.status_code == 200
+        resp = response.json()
+        assert resp['data'] is not None
+
+        for template in resp['data']:
+            assert category not in template['categories']
+
+
 def test_template_without_categories(client):
     templates = client.list_template()
     assert len(templates) > 0
@@ -233,6 +258,40 @@ def test_template_version_links(client):
     assert response.status_code == 200
     resp = response.json()
     assert len(resp['versionLinks']) == 9
+
+
+def test_rancher_version_filter(client):
+    templates = client.list_template()
+    assert len(templates) > 0
+
+    min_rancher_template_found = False
+    max_rancher_template_found = False
+    for template in templates:
+        if template.folderName == 'min-rancher-version':
+            min_rancher_template_found = True
+        if template.folderName == 'max-rancher-version':
+            max_rancher_template_found = True
+
+    assert min_rancher_template_found
+    assert max_rancher_template_found
+
+    url = 'http://localhost:8088/v1-catalog/templates?rancherVersion=v1.2.0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['data'] is not None
+
+    for template in resp['data']:
+        assert template['folderName'] != 'min-rancher-version'
+
+    url = 'http://localhost:8088/v1-catalog/templates?rancherVersion=v1.5.0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['data'] is not None
+
+    for template in resp['data']:
+        assert template['folderName'] != 'max-rancher-version'
 
 
 def test_upgrade_links(client):
