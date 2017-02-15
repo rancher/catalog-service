@@ -19,6 +19,10 @@ func traverseFiles(repoPath string) ([]model.Template, []error, error) {
 	var errors []error
 
 	if err := filepath.Walk(repoPath, func(fullPath string, f os.FileInfo, err error) error {
+		if !f.Mode().IsRegular() {
+			return nil
+		}
+
 		relativePath, err := filepath.Rel(repoPath, fullPath)
 		if err != nil {
 			return err
@@ -98,11 +102,8 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 		}
 		contents, err := ioutil.ReadFile(fullPath)
 		if err != nil {
-			// TODO
-			return nil
-			//return err
+			return err
 		}
-		//var templateConfig TemplateConfig
 		var template model.Template
 		if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
 			return err
@@ -127,9 +128,7 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 
 		contents, err := ioutil.ReadFile(fullPath)
 		if err != nil {
-			// TODO
-			return nil
-			//return err
+			return err
 		}
 
 		key := base + templateName
@@ -152,9 +151,7 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 
 		contents, err := ioutil.ReadFile(fullPath)
 		if err != nil {
-			// TODO
-			return nil
-			//return err
+			return err
 		}
 
 		key := base + templateName
@@ -178,9 +175,7 @@ func handleVersionFile(templateIndex map[string]*model.Template, fullPath, relat
 
 	contents, err := ioutil.ReadFile(fullPath)
 	if err != nil {
-		// TODO
-		return nil
-		//return err
+		return err
 	}
 
 	key := base + templateName
