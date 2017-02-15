@@ -105,13 +105,13 @@ def test_catalog_commit(client):
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] == '4da3eb15e3d4e618b8e738963a511c422b009879'
+    assert resp['commit'] == '0af3fe8715185b78e78580def88a493f4b3c5556'
 
     url = 'http://localhost:8088/v1-catalog/catalogs/updated'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] != '4da3eb15e3d4e618b8e738963a511c422b009879'
+    assert resp['commit'] != '0af3fe8715185b78e78580def88a493f4b3c5556'
 
 
 def test_create_and_delete_catalog(client):
