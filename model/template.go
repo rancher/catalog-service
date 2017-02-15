@@ -95,13 +95,22 @@ func LookupTemplates(db *gorm.DB, environmentId, catalog, templateBaseEq string,
 		params = append(params, categoryNe)
 	}
 
-	query := `
+	var query string
+	if len(categories) == 0 && len(categoriesNe) == 0 {
+		query = `
+SELECT catalog_template.*
+FROM catalog_template, catalog
+WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
+AND catalog_template.catalog_id = catalog.id`
+	} else {
+		query = `
 SELECT catalog_template.*
 FROM catalog_template, catalog_template_category, catalog_category, catalog
 WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
 AND catalog_template.id = catalog_template_category.template_id
 AND catalog_category.id = catalog_template_category.category_id
 AND catalog_template.catalog_id = catalog.id`
+	}
 
 	if catalog != "" {
 		query += `
