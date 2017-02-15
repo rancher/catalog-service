@@ -62,7 +62,6 @@ func (m *Manager) Refresh(environmentId string) error {
 }
 
 func (m *Manager) refreshCatalog(catalog model.Catalog) error {
-
 	repoPath, commit, err := m.prepareRepoPath(catalog)
 	if err != nil {
 		return err
@@ -74,9 +73,12 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 		return nil
 	}
 
-	templates, err := traverseFiles(repoPath)
+	templates, errors, err := traverseFiles(repoPath)
 	if err != nil {
 		return err
+	}
+	if errors != nil {
+		log.Errorf("Errors while parsing repo: %v", errors)
 	}
 
 	log.Debugf("Updating catalog %s", catalog.Name)
