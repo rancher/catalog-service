@@ -149,6 +149,7 @@ func formatDSN(user, password, address, dbname, params string) string {
 	mysqlConfig := &mysql.Config{
 		User:   user,
 		Passwd: password,
+		Net:    "tcp",
 		Addr:   address,
 		DBName: dbname,
 		Params: paramsMap,
