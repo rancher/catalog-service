@@ -105,6 +105,9 @@ func run(cmd *cobra.Command, args []string) {
 		if defaultTableName == "catalog" {
 			return defaultTableName
 		}
+		if defaultTableName == "template_label" {
+			defaultTableName = strings.TrimPrefix(defaultTableName, "template_")
+		}
 		return "catalog_" + defaultTableName
 	}
 
