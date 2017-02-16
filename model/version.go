@@ -15,6 +15,8 @@ type Version struct {
 	UpgradeFrom           string `json:"upgradeFrom" yaml:"upgrade_from"`
 	Readme                string `json:"readme"`
 
+	Labels map[string]string `sql:"-" json:"labels"`
+
 	Files     []File     `sql:"-"`
 	Questions []Question `sql:"-"`
 }
@@ -48,6 +50,7 @@ AND catalog_template.folder_name = ?
 AND catalog_version.revision = ?
 `, environmentId, "global", catalog, base, template, revision).Scan(&versionModel)
 
+	versionModel.Labels = lookupVersionLabels(db, versionModel.ID)
 	versionModel.Files = lookupFiles(db, versionModel.ID)
 
 	return &versionModel.Version
@@ -63,6 +66,7 @@ func lookupVersions(db *gorm.DB, templateId uint) []Version {
 
 	var versions []Version
 	for _, versionModel := range versionModels {
+		versionModel.Labels = lookupVersionLabels(db, versionModel.ID)
 		versionModel.Files = lookupFiles(db, versionModel.ID)
 		versions = append(versions, versionModel.Version)
 	}
