@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/libcompose/utils"
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/go-rancher/client"
 )
@@ -88,29 +89,12 @@ func LookupTemplates(db *gorm.DB, environmentId, catalog, templateBaseEq string,
 	if templateBaseEq != "" {
 		params = append(params, templateBaseEq)
 	}
-	for _, category := range categories {
-		params = append(params, category)
-	}
-	for _, categoryNe := range categoriesNe {
-		params = append(params, categoryNe)
-	}
 
-	var query string
-	if len(categories) == 0 && len(categoriesNe) == 0 {
-		query = `
-SELECT catalog_template.*
-FROM catalog_template, catalog
-WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
-AND catalog_template.catalog_id = catalog.id`
-	} else {
-		query = `
-SELECT catalog_template.*
-FROM catalog_template, catalog_template_category, catalog_category, catalog
-WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
-AND catalog_template.id = catalog_template_category.template_id
-AND catalog_category.id = catalog_template_category.category_id
-AND catalog_template.catalog_id = catalog.id`
-	}
+	query := `
+	SELECT catalog_template.*
+	FROM catalog_template, catalog
+	WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
+	AND catalog_template.catalog_id = catalog.id`
 
 	if catalog != "" {
 		query += `
@@ -120,21 +104,28 @@ AND catalog.name = ?`
 		query += `
 AND catalog_template.base = ?`
 	}
-	if len(categories) > 0 {
-		query += fmt.Sprintf(`
-AND catalog_category.name IN (%s)`, listQuery(len(categories)))
-	}
-	if len(categoriesNe) > 0 {
-		query += fmt.Sprintf(`
-AND catalog_category.name NOT IN (%s)`, listQuery(len(categoriesNe)))
-	}
 
 	db.Raw(query, params...).Find(&templateModels)
 
 	var templates []Template
 	for _, templateModel := range templateModels {
 		fillInTemplate(db, &templateModel)
-		templates = append(templates, templateModel.Template)
+		skip := false
+		for _, category := range categories {
+			if !utils.Contains(templateModel.Categories, category) {
+				skip = true
+				break
+			}
+		}
+		for _, categoryNe := range categoriesNe {
+			if utils.Contains(templateModel.Categories, categoryNe) {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			templates = append(templates, templateModel.Template)
+		}
 	}
 	return templates
 }
