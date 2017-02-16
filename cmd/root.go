@@ -122,7 +122,7 @@ func run(cmd *cobra.Command, args []string) {
 		db.AutoMigrate(&model.VersionLabelModel{})
 	}
 
-	m := manager.NewManager(cacheRoot, configFile, db)
+	m := manager.NewManager(cacheRoot, configFile, validateOnly, db)
 	go refresh(m, refreshInterval, validateOnly)
 	if validateOnly {
 		select {}
