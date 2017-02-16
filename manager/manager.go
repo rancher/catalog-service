@@ -1,6 +1,8 @@
 package manager
 
 import (
+	"fmt"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/catalog-service/model"
@@ -10,13 +12,15 @@ type Manager struct {
 	cacheRoot  string
 	configFile string
 	config     map[string]CatalogConfig
+	strict     bool
 	db         *gorm.DB
 }
 
-func NewManager(cacheRoot string, configFile string, db *gorm.DB) *Manager {
+func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB) *Manager {
 	return &Manager{
 		cacheRoot:  cacheRoot,
 		configFile: configFile,
+		strict:     strict,
 		db:         db,
 	}
 }
@@ -78,6 +82,9 @@ func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 		return err
 	}
 	if errors != nil {
+		if m.strict {
+			return fmt.Errorf("%v", errors)
+		}
 		log.Errorf("Errors while parsing repo: %v", errors)
 	}
 
