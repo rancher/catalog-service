@@ -195,28 +195,35 @@ def test_category_filter(client):
 
 def test_category_ne_filter(client):
     base_url = 'http://localhost:8088/v1-catalog/templates?category_ne='
-    # for category in ('category1', 'category2', 'System'):
-    for category in ('System'):
+    for category in ('category1', 'category2', 'System'):
         response = requests.get(base_url + category, headers=DEFAULT_HEADERS)
         assert response.status_code == 200
         resp = response.json()
         assert resp['data'] is not None
 
         for template in resp['data']:
-            assert category not in template['categories']
+            categories = template['categories']
+            if categories:
+                assert category not in template['categories']
 
 
 def test_template_without_categories(client):
-    templates = client.list_template()
-    assert len(templates) > 0
+    base_url = 'http://localhost:8088/v1-catalog/templates'
 
-    no_categories_template_found = False
-    for template in templates:
-        if template.folderName == 'no-categories':
-            no_categories_template_found = True
-            break
+    for category in ('category1', 'category2', 'System'):
+        url = base_url + '?catalog_ne=' + category
+        response = requests.get(url, headers=DEFAULT_HEADERS)
+        assert response.status_code == 200
+        resp = response.json()
+        templates = resp['data']
 
-    assert no_categories_template_found
+        no_categories_template_found = False
+        for template in templates:
+            if template['folderName'] == 'no-categories':
+                no_categories_template_found = True
+                break
+
+        assert no_categories_template_found
 
 
 def test_machine_template(client):
