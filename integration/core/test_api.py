@@ -105,13 +105,13 @@ def test_catalog_commit(client):
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] == '95eef2a2834bc5b422858e1ea0b32e88d246368f'
+    assert resp['commit'] == '48f8461f9f51c38de84e4258611c0227a34e0de8'
 
     url = 'http://localhost:8088/v1-catalog/catalogs/updated'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] != '95eef2a2834bc5b422858e1ea0b32e88d246368f'
+    assert resp['commit'] != '48f8461f9f51c38de84e4258611c0227a34e0de8'
 
 
 def test_create_and_delete_catalog(client):
@@ -333,6 +333,16 @@ def test_get_template_version(client):
     assert response.status_code == 200
     resp = response.json()
     assert resp['revision'] == 1
+
+
+def test_get_template_version_labels(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:version-labels:0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['labels'] is not None
+    assert resp['labels']['key1'] == 'value1'
+    assert resp['labels']['key2'] == 'value2'
 
 
 def test_template_version_questions(client):

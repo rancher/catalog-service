@@ -74,7 +74,7 @@ func fillInTemplate(db *gorm.DB, templateModel *TemplateModel) {
 		templateModel.Catalog = catalog.Name
 	}
 	templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
-	templateModel.Labels = lookupLabels(db, templateModel.ID)
+	templateModel.Labels = lookupTemplateLabels(db, templateModel.ID)
 	templateModel.Versions = lookupVersions(db, templateModel.ID)
 }
 

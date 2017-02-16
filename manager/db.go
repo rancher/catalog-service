@@ -96,8 +96,8 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 		}
 
 		for k, v := range template.Labels {
-			if err := tx.Create(&model.LabelModel{
-				Label: model.Label{
+			if err := tx.Create(&model.TemplateLabelModel{
+				TemplateLabel: model.TemplateLabel{
 					TemplateId: templateModel.ID,
 					Key:        k,
 					Value:      v,
@@ -143,6 +143,19 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 			if err := tx.Create(&versionModel).Error; err != nil {
 				tx.Rollback()
 				return err
+			}
+
+			for k, v := range version.Labels {
+				if err := tx.Create(&model.VersionLabelModel{
+					VersionLabel: model.VersionLabel{
+						VersionId: versionModel.ID,
+						Key:       k,
+						Value:     v,
+					},
+				}).Error; err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 
 			for _, file := range version.Files {

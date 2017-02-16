@@ -2,22 +2,22 @@ package model
 
 import "github.com/jinzhu/gorm"
 
-type Label struct {
+type TemplateLabel struct {
 	TemplateId uint `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
 
 	Key   string
 	Value string
 }
 
-type LabelModel struct {
+type TemplateLabelModel struct {
 	Base
-	Label
+	TemplateLabel
 }
 
-func lookupLabels(db *gorm.DB, templateId uint) map[string]string {
-	var labelModels []LabelModel
-	db.Where(&LabelModel{
-		Label: Label{
+func lookupTemplateLabels(db *gorm.DB, templateId uint) map[string]string {
+	var labelModels []TemplateLabelModel
+	db.Where(&TemplateLabelModel{
+		TemplateLabel: TemplateLabel{
 			TemplateId: templateId,
 		},
 	}).Find(&labelModels)

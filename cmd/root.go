@@ -115,10 +115,11 @@ func run(cmd *cobra.Command, args []string) {
 		db.AutoMigrate(&model.TemplateModel{})
 		db.AutoMigrate(&model.CategoryModel{})
 		db.AutoMigrate(&model.TemplateCategoryModel{})
-		db.AutoMigrate(&model.LabelModel{})
+		db.AutoMigrate(&model.TemplateLabelModel{})
 
 		db.AutoMigrate(&model.VersionModel{})
 		db.AutoMigrate(&model.FileModel{})
+		db.AutoMigrate(&model.VersionLabelModel{})
 	}
 
 	m := manager.NewManager(cacheRoot, configFile, db)
