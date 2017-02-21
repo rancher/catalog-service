@@ -22,6 +22,13 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
 		catalog = r.URL.Query().Get("catalog")
 	}
 	rancherVersion := r.URL.Query().Get("rancherVersion")
+
+	// Backwards compatibility for older versions of CLI
+	minRancherVersion := r.URL.Query().Get("minimumRancherVersion_lte")
+	if rancherVersion == "" && minRancherVersion != "" {
+		rancherVersion = minRancherVersion
+	}
+
 	templateBaseEq := r.URL.Query().Get("templateBase_eq")
 	categories, _ := r.URL.Query()["category"]
 	categoriesNe, _ := r.URL.Query()["category_ne"]
