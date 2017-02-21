@@ -19,7 +19,7 @@ func traverseFiles(repoPath string) ([]model.Template, []error, error) {
 	var errors []error
 
 	if err := filepath.Walk(repoPath, func(fullPath string, f os.FileInfo, err error) error {
-		if !f.Mode().IsRegular() {
+		if f == nil || !f.Mode().IsRegular() {
 			return nil
 		}
 
