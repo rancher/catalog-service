@@ -114,14 +114,34 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 		}
 
 		for _, category := range template.Categories {
-			var categoryModel model.CategoryModel
-			if err := tx.FirstOrCreate(&categoryModel, model.CategoryModel{
+			var categoryModels []model.CategoryModel
+			tx.Where(&model.CategoryModel{
 				Category: model.Category{
 					Name: category,
 				},
-			}).Error; err != nil {
-				tx.Rollback()
-				return err
+			}).Find(&categoryModels)
+
+			var categoryModel model.CategoryModel
+
+			categoryFound := false
+			for _, dbCategoryModel := range categoryModels {
+				if dbCategoryModel.Name == category {
+					categoryFound = true
+					categoryModel = dbCategoryModel
+					break
+				}
+			}
+
+			if !categoryFound {
+				categoryModel = model.CategoryModel{
+					Category: model.Category{
+						Name: category,
+					},
+				}
+				if err := tx.Create(&categoryModel).Error; err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 
 			if err := tx.Create(&model.TemplateCategoryModel{

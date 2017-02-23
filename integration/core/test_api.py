@@ -12,6 +12,7 @@ def headers(environment_id):
 
 
 DEFAULT_HEADERS = headers('e1')
+BASE_URL = 'http://localhost:8088/v1-catalog/'
 
 
 def create_catalog(name, url, branch=None, headers=DEFAULT_HEADERS):
@@ -101,17 +102,18 @@ def test_get_catalog(client):
 
 
 def test_catalog_commit(client):
+    latest_commit = 'cacacafc6c4aa4677a6e2d897b8f2fb8fa288fba'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] == '48f8461f9f51c38de84e4258611c0227a34e0de8'
+    assert resp['commit'] == latest_commit
 
     url = 'http://localhost:8088/v1-catalog/catalogs/updated'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
-    assert resp['commit'] != '48f8461f9f51c38de84e4258611c0227a34e0de8'
+    assert resp['commit'] != latest_commit
 
 
 def test_create_and_delete_catalog(client):
@@ -181,16 +183,28 @@ def test_template_categories(client):
     assert resp['categories'][1] == 'category2'
 
 
+def test_preserve_category_case(client):
+    url = BASE_URL + 'templates/orig:upper-case-categories'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert len(resp['categories']) == 3
+    assert resp['categories'][0] == 'CATEGORY1'
+    assert resp['categories'][1] == 'CATEGORY2'
+    assert resp['categories'][2] == 'CATEGORY3'
+
+
 def test_category_filter(client):
     base_url = 'http://localhost:8088/v1-catalog/templates?category='
-    for category in ('category1', 'category2', 'System'):
+    for category in ('category1', 'category2', 'category3', 'System'):
         response = requests.get(base_url + category, headers=DEFAULT_HEADERS)
         assert response.status_code == 200
         resp = response.json()
         assert resp['data'] is not None
 
         for template in resp['data']:
-            assert category in template['categories']
+            categories = [c.lower() for c in template['categories']]
+            assert category.lower() in categories
 
 
 def test_category_ne_filter(client):
