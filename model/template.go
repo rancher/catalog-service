@@ -45,8 +45,8 @@ type TemplateResource struct {
 	client.Resource
 	Template
 
-	VersionLinks     map[string]string `json:"versionLinks"`
-	DefaultVersionId string            `json:"defaultVersionId"`
+	VersionLinks             map[string]string `json:"versionLinks"`
+	DefaultTemplateVersionId string            `json:"defaultTemplateVersionId"`
 }
 
 type TemplateCollection struct {
