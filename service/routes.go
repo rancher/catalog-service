@@ -28,7 +28,7 @@ var schemas *client.Schemas
 var m *manager.Manager
 var db *gorm.DB
 
-func handler(schemas *client.Schemas, envIdRequired bool, f func(http.ResponseWriter, *http.Request, string) error) http.Handler {
+func handler(schemas *client.Schemas, envIdRequired bool, f func(http.ResponseWriter, *http.Request, string) (int, error)) http.Handler {
 	return api.ApiHandler(schemas, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		envId, err := getEnvironmentId(r)
 		if err != nil {
@@ -38,8 +38,8 @@ func handler(schemas *client.Schemas, envIdRequired bool, f func(http.ResponseWr
 			}
 			envId = "global"
 		}
-		if err = f(w, r, envId); err != nil {
-			ReturnHTTPError(w, r, http.StatusBadRequest, err)
+		if code, err := f(w, r, envId); err != nil {
+			ReturnHTTPError(w, r, code, err)
 			return
 		}
 	}))

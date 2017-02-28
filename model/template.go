@@ -55,7 +55,7 @@ type TemplateCollection struct {
 
 func LookupTemplate(db *gorm.DB, environmentId, catalog, folderName, base string) *Template {
 	var templateModel TemplateModel
-	db.Raw(`
+	if err := db.Raw(`
 SELECT catalog_template.*
 FROM catalog_template, catalog
 WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
@@ -63,7 +63,9 @@ AND catalog_template.catalog_id = catalog.id
 AND catalog.name = ?
 AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
-`, environmentId, "global", catalog, base, folderName).Scan(&templateModel)
+`, environmentId, "global", catalog, base, folderName).Scan(&templateModel).Error; err == gorm.ErrRecordNotFound {
+		return nil
+	}
 
 	fillInTemplate(db, &templateModel)
 	return &templateModel.Template
