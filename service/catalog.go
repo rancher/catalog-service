@@ -10,7 +10,7 @@ import (
 	"github.com/rancher/go-rancher/client"
 )
 
-func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) error {
+func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	catalogs := model.LookupCatalogs(db, envId)
@@ -27,27 +27,30 @@ func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) error {
 	}
 
 	apiContext.Write(&resp)
-	return nil
+	return 0, nil
 }
 
-func getCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
+func getCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	vars := mux.Vars(r)
 	envId, err := getEnvironmentId(r)
 	if err != nil {
-		return err
+		return http.StatusBadRequest, err
 	}
 
 	// TODO error checking
 	catalogName := vars["catalog"]
 	catalog := model.LookupCatalog(db, envId, catalogName)
+	if catalog == nil {
+		return http.StatusNotFound, errors.New("Catalog not found")
+	}
 
 	apiContext.Write(catalogResource(*catalog))
-	return nil
+	return 0, nil
 }
 
-func createCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
+func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	catalogName := r.FormValue("name")
@@ -55,10 +58,10 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
 	branch := r.FormValue("branch")
 
 	if catalogName == "" {
-		return errors.New("Missing field 'name'")
+		return http.StatusBadRequest, errors.New("Missing field 'name'")
 	}
 	if url == "" {
-		return errors.New("Missing field 'url'")
+		return http.StatusBadRequest, errors.New("Missing field 'url'")
 	}
 
 	catalogModel := model.CatalogModel{
@@ -71,34 +74,34 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
 	}
 
 	if err := db.Create(&catalogModel).Error; err != nil {
-		return err
+		return http.StatusBadRequest, err
 	}
 
 	apiContext.Write(catalogResource(catalogModel.Catalog))
-	return nil
+	return 0, nil
 }
 
-func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string) error {
+func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	vars := mux.Vars(r)
 
 	name, ok := vars["catalog"]
 	if !ok {
-		return errors.New("Missing paramater catalog")
+		return http.StatusBadRequest, errors.New("Missing paramater catalog")
 	}
 
 	model.DeleteCatalog(db, envId, name)
 
 	w.WriteHeader(http.StatusNoContent)
-	return nil
+	return 0, nil
 }
 
-func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
+func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 
 	catalogName, ok := vars["catalog"]
 	if !ok {
-		return errors.New("Missing paramater catalog")
+		return http.StatusBadRequest, errors.New("Missing paramater catalog")
 	}
 
 	rancherVersion := r.URL.Query().Get("rancherVersion")
@@ -122,5 +125,5 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) e
 	}
 
 	apiContext.Write(&resp)
-	return nil
+	return 0, nil
 }

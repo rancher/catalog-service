@@ -39,7 +39,7 @@ type TemplateVersionResource struct {
 
 func LookupVersion(db *gorm.DB, environmentId, catalog, base, template string, revision int) *Version {
 	var versionModel VersionModel
-	db.Raw(`
+	if err := db.Raw(`
 SELECT catalog_version.*
 FROM catalog_version, catalog_template, catalog
 WHERE (catalog.environment_id = ? OR catalog.environment_id = ?)
@@ -49,7 +49,9 @@ AND catalog.name = ?
 AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
 AND catalog_version.revision = ?
-`, environmentId, "global", catalog, base, template, revision).Scan(&versionModel)
+`, environmentId, "global", catalog, base, template, revision).Scan(&versionModel).Error; err == gorm.ErrRecordNotFound {
+		return nil
+	}
 
 	versionModel.Labels = lookupVersionLabels(db, versionModel.ID)
 	versionModel.Files = lookupFiles(db, versionModel.ID)

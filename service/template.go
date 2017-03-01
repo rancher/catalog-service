@@ -14,7 +14,7 @@ import (
 	"github.com/rancher/go-rancher/api"
 )
 
-func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
+func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	catalog := r.URL.Query().Get("catalogId")
@@ -49,68 +49,75 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
 	}
 
 	apiContext.Write(&resp)
-	return nil
+	return 0, nil
 }
 
-func getTemplate(w http.ResponseWriter, r *http.Request, envId string) error {
+func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 
 	catalogTemplateVersion, ok := vars["catalog_template_version"]
 	if !ok {
-		return errors.New("Missing paramater catalog_template_version")
+		return http.StatusBadRequest, errors.New("Missing paramater catalog_template_version")
 	}
 
 	rancherVersion := r.URL.Query().Get("rancherVersion")
 
 	catalogName, templateName, templateBase, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
-	if revisionNumber == -1 {
-		// Return template
-		template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
 
+	template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
+	if template == nil {
+		return http.StatusNotFound, errors.New("Template not found")
+	}
+
+	if revisionNumber == -1 {
 		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
 			icon, err := base64.StdEncoding.DecodeString(template.Icon)
 			if err != nil {
-				return nil
+				return http.StatusBadRequest, err
 			}
 			iconReader := bytes.NewReader(icon)
 			http.ServeContent(w, r, template.IconFilename, time.Time{}, iconReader)
-			return nil
+			return 0, nil
 		} else if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
 			w.Write([]byte(template.Readme))
-			return nil
+			return 0, nil
 		}
 
+		// Return template
 		apiContext.Write(templateResource(apiContext, catalogName, *template, rancherVersion))
 	} else {
-		// Return template version
-		template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
 		version := model.LookupVersion(db, envId, catalogName, templateBase, templateName, revisionNumber)
+		if version == nil {
+			return http.StatusNotFound, errors.New("Version not found")
+		}
 
 		if r.URL.RawQuery != "" && strings.EqualFold("readme", r.URL.RawQuery) {
 			w.Write([]byte(version.Readme))
-			return nil
+			return 0, nil
 		}
 
 		versionResource, err := versionResource(apiContext, catalogName, *template, *version, rancherVersion)
 		if err != nil {
-			return err
+			return http.StatusBadRequest, err
 		}
+
+		// Return template version
 		apiContext.Write(versionResource)
 	}
 
-	return nil
+	return 0, nil
 }
 
-func refreshTemplates(w http.ResponseWriter, r *http.Request, envId string) error {
+func refreshTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	if err := m.Refresh(envId); err != nil {
-		return err
+		return http.StatusBadRequest, err
 	}
 	if envId != "global" {
 		if err := m.Refresh("global"); err != nil {
-			return err
+			return http.StatusBadRequest, err
 		}
 	}
 	w.WriteHeader(http.StatusNoContent)
-	return nil
+	return 0, nil
 }

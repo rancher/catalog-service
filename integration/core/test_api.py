@@ -101,6 +101,12 @@ def test_get_catalog(client):
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
 
 
+def test_get_catalog_404(client):
+    url = 'http://localhost:8088/v1-catalog/catalogs/not-real'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 404
+
+
 def test_catalog_commit(client):
     latest_commit = 'cacacafc6c4aa4677a6e2d897b8f2fb8fa288fba'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
@@ -162,6 +168,12 @@ def test_get_template(client):
 
     assert len(resp['categories']) == 1
     assert resp['categories'][0] == 'System'
+
+
+def test_get_template_404(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:not-real'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 404
 
 
 def test_template_category(client):
@@ -354,6 +366,12 @@ def test_get_template_version(client):
     assert response.status_code == 200
     resp = response.json()
     assert resp['revision'] == 1
+
+
+def test_get_template_version_404(client):
+    url = 'http://localhost:8088/v1-catalog/templates/orig:k8s:1000'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 404
 
 
 def test_get_template_version_labels(client):

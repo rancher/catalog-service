@@ -38,11 +38,13 @@ func GetCatalog(db *gorm.DB, id uint) *Catalog {
 
 func LookupCatalog(db *gorm.DB, environmentId, name string) *Catalog {
 	var catalogModel CatalogModel
-	db.Where(&CatalogModel{
+	if err := db.Where(&CatalogModel{
 		Catalog: Catalog{
 			Name: name,
 		},
-	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&catalogModel)
+	}).Where("environment_id = ? OR environment_id = ?", environmentId, "global").First(&catalogModel).Error; err == gorm.ErrRecordNotFound {
+		return nil
+	}
 	return &catalogModel.Catalog
 }
 
