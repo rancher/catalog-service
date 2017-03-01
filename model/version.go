@@ -34,6 +34,7 @@ type TemplateVersionResource struct {
 	Files               map[string]string   `json:"files"`
 	Questions           []Question          `json:"questions"`
 	UpgradeVersionLinks map[string]string   `json:"upgradeVersionLinks"`
+	TemplateId          string              `json:"templateId"`
 }
 
 func LookupVersion(db *gorm.DB, environmentId, catalog, base, template string, revision int) *Version {

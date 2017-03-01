@@ -144,6 +144,8 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 		links["project"] = template.ProjectURL
 	}
 
+	links["template"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", templateId))
+
 	upgradeVersionLinks := map[string]string{}
 	for _, upgradeVersion := range template.Versions {
 		if showUpgradeVersion(version, upgradeVersion, rancherVersion) {
@@ -163,6 +165,7 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 		Files:               filesMap,
 		Questions:           questions,
 		UpgradeVersionLinks: upgradeVersionLinks,
+		TemplateId:          templateId,
 	}, nil
 }
 
