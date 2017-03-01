@@ -45,11 +45,11 @@ func (m *Manager) prepareRepoPath(catalog model.Catalog) (string, string, error)
 
 	if empty {
 		if err = git.Clone(repoPath, catalog.URL, branch); err != nil {
-			return "", "", nil
+			return "", "", err
 		}
 	} else {
 		if err = git.Update(repoPath, branch); err != nil {
-			return "", "", nil
+			return "", "", err
 		}
 	}
 

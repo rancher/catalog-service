@@ -162,7 +162,7 @@ func formatDSN(user, password, address, dbname, params string) string {
 
 func refresh(m *manager.Manager, refreshInterval int, validateOnly bool) {
 	if err := m.RefreshAll(); err != nil {
-		log.Fatalf("Failed to do initial refresh of catalogs: %v", err)
+		log.Fatalf("Failed to perform initial catalog refresh: %v", err)
 	}
 	if validateOnly {
 		os.Exit(0)
@@ -170,6 +170,10 @@ func refresh(m *manager.Manager, refreshInterval int, validateOnly bool) {
 	// TODO: don't want to have refresh running twice at the same time
 	for range time.Tick(time.Duration(refreshInterval) * time.Second) {
 		log.Debugf("Performing automatic refresh of all catalogs (interval %d seconds)", refreshInterval)
-		go m.RefreshAll()
+		go func() {
+			if err := m.RefreshAll(); err != nil {
+				log.Errorf("Failed to perform catalog refresh: %v", err)
+			}
+		}()
 	}
 }
