@@ -95,14 +95,22 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 		links["project"] = template.ProjectURL
 	}
 
+	var defaultTemplateVersionId string
+	for _, version := range template.Versions {
+		if version.Version == template.DefaultVersion {
+			defaultTemplateVersionId = generateVersionId(catalogName, template, version)
+		}
+	}
+
 	return &model.TemplateResource{
 		Resource: client.Resource{
 			Id:    templateId,
 			Type:  "template",
 			Links: links,
 		},
-		Template:     template,
-		VersionLinks: versionLinks,
+		Template:                 template,
+		VersionLinks:             versionLinks,
+		DefaultTemplateVersionId: defaultTemplateVersionId,
 	}
 }
 
