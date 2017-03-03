@@ -1,9 +1,6 @@
 package manager
 
-import (
-	"github.com/jinzhu/gorm"
-	"github.com/rancher/catalog-service/model"
-)
+import "github.com/rancher/catalog-service/model"
 
 func (m *Manager) removeCatalogsNotInConfig() error {
 	var catalogs []model.CatalogModel
@@ -27,27 +24,44 @@ func (m *Manager) removeCatalogsNotInConfig() error {
 	return nil
 }
 
-func (m *Manager) lookupEnvironmentCatalogs(environmentId string) ([]model.Catalog, error) {
+func (m *Manager) lookupCatalogs(environmentId string) ([]model.Catalog, error) {
 	var catalogModels []model.CatalogModel
 	if environmentId == "" {
-		m.db.Find(&catalogModels)
+		if err := m.db.Find(&catalogModels).Error; err != nil {
+			return nil, err
+		}
 	} else {
-		m.db.Where(&model.CatalogModel{
+		if err := m.db.Where(&model.CatalogModel{
 			Catalog: model.Catalog{
 				EnvironmentId: environmentId,
 			},
-		}).Find(&catalogModels)
+		}).Find(&catalogModels).Error; err != nil {
+			return nil, err
+		}
 	}
 	var catalogs []model.Catalog
 	for _, catalogModel := range catalogModels {
-		if catalogModel.EnvironmentId != "global" {
-			catalogs = append(catalogs, catalogModel.Catalog)
-		}
+		catalogs = append(catalogs, catalogModel.Catalog)
 	}
 	return catalogs, nil
 }
 
-func (m *Manager) updateDb(tx *gorm.DB, catalog model.Catalog, templates []model.Template, newCommit string) error {
+func (m *Manager) lookupCatalog(environmentId, name string) (model.Catalog, error) {
+	var catalogModel model.CatalogModel
+	if err := m.db.Where(&model.CatalogModel{
+		Catalog: model.Catalog{
+			EnvironmentId: environmentId,
+			Name:          name,
+		},
+	}).First(&catalogModel).Error; err != nil {
+		return model.Catalog{}, err
+	}
+	return catalogModel.Catalog, nil
+}
+
+func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, newCommit string) error {
+	tx := m.db.Begin()
+
 	if err := tx.Where(&model.CatalogModel{
 		Catalog: model.Catalog{
 			Name:          catalog.Name,
