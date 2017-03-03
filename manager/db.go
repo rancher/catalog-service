@@ -1,6 +1,10 @@
 package manager
 
-import "github.com/rancher/catalog-service/model"
+import (
+	"database/sql"
+
+	"github.com/rancher/catalog-service/model"
+)
 
 func (m *Manager) removeCatalogsNotInConfig() error {
 	var catalogs []model.CatalogModel
@@ -60,45 +64,54 @@ func (m *Manager) lookupCatalog(environmentId, name string) (model.Catalog, erro
 }
 
 func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, newCommit string) error {
-	tx := m.db.Begin()
+	tx, err := m.db.DB().Begin()
+	if err != nil {
+		return err
+	}
 
-	if err := tx.Where(&model.CatalogModel{
-		Catalog: model.Catalog{
-			Name:          catalog.Name,
-			EnvironmentId: catalog.EnvironmentId,
-		},
-	}).Delete(&model.CatalogModel{}).Error; err != nil {
+	if _, err = tx.Exec(`
+DELETE FROM catalog
+WHERE catalog.name = ?
+AND catalog.environment_id = ?
+`, catalog.Name, catalog.EnvironmentId); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	var catalogModel model.CatalogModel
-	catalogModel.Catalog = catalog
-	catalogModel.Commit = newCommit
-	if err := tx.Create(&catalogModel).Error; err != nil {
+	catalogResult, err := tx.Exec(`
+INSERT INTO catalog (environment_id, name, url, branch, [commit])
+VALUES (?, ?, ?, ?, ?)
+`, catalog.EnvironmentId, catalog.Name, catalog.URL, catalog.Branch, newCommit)
+	if err != nil {
 		tx.Rollback()
+		return err
+	}
+
+	catalogId, err := catalogResult.LastInsertId()
+	if err != nil {
 		return err
 	}
 
 	for _, template := range templates {
-		template.CatalogId = catalogModel.ID
-		template.EnvironmentId = catalogModel.EnvironmentId
-		templateModel := model.TemplateModel{
-			Template: template,
-		}
-		if err := tx.Create(&templateModel).Error; err != nil {
+		templateResult, err := tx.Exec(`
+INSERT INTO catalog_template (environment_id, catalog_id, name, is_system, description, default_version, path, maintainer, license, project_url, upgrade_from, folder_name, base, icon, icon_filename, readme)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, catalog.EnvironmentId, catalogId, template.Name, template.IsSystem, template.Description, template.DefaultVersion, template.Path, template.Maintainer, template.License, template.ProjectURL, template.UpgradeFrom, template.FolderName, template.Base, template.Icon, template.IconFilename, template.Readme)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
 
+		templateId, err := templateResult.LastInsertId()
+		if err != nil {
+			return err
+		}
+
 		for k, v := range template.Labels {
-			if err := tx.Create(&model.TemplateLabelModel{
-				TemplateLabel: model.TemplateLabel{
-					TemplateId: templateModel.ID,
-					Key:        k,
-					Value:      v,
-				},
-			}).Error; err != nil {
+			if _, err := tx.Exec(`
+INSERT INTO catalog_label (template_id, key, value)
+VALUES (?, ?, ?)
+`, templateId, k, v); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -110,75 +123,51 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 		}
 
 		for _, category := range template.Categories {
-			var categoryModels []model.CategoryModel
-			tx.Where(&model.CategoryModel{
-				Category: model.Category{
-					Name: category,
-				},
-			}).Find(&categoryModels)
-
-			var categoryModel model.CategoryModel
-
-			categoryFound := false
-			for _, dbCategoryModel := range categoryModels {
-				if dbCategoryModel.Name == category {
-					categoryFound = true
-					categoryModel = dbCategoryModel
-					break
-				}
+			categoryId, err := m.ensureCategoryExists(tx, category)
+			if err != nil {
+				tx.Rollback()
+				return err
 			}
 
-			if !categoryFound {
-				categoryModel = model.CategoryModel{
-					Category: model.Category{
-						Name: category,
-					},
-				}
-				if err := tx.Create(&categoryModel).Error; err != nil {
-					tx.Rollback()
-					return err
-				}
-			}
-
-			if err := tx.Create(&model.TemplateCategoryModel{
-				TemplateCategory: model.TemplateCategory{
-					TemplateId: templateModel.ID,
-					CategoryId: categoryModel.ID,
-				},
-			}).Error; err != nil {
+			if _, err := tx.Exec(`
+INSERT INTO catalog_template_category (template_id, category_id)
+VALUES (?, ?)
+`, templateId, categoryId); err != nil {
 				tx.Rollback()
 				return err
 			}
 		}
 
 		for _, version := range template.Versions {
-			version.TemplateId = templateModel.ID
-			versionModel := model.VersionModel{
-				Version: version,
-			}
-			if err := tx.Create(&versionModel).Error; err != nil {
+			versionResult, err := tx.Exec(`
+INSERT INTO catalog_version (template_id, revision, version, minimum_rancher_version, maximum_rancher_version, upgrade_from, readme)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+`, templateId, version.Revision, version.Version, version.MinimumRancherVersion, version.MaximumRancherVersion, version.UpgradeFrom, version.Readme)
+			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
+			versionId, err := versionResult.LastInsertId()
+			if err != nil {
+				return err
+			}
+
 			for k, v := range version.Labels {
-				if err := tx.Create(&model.VersionLabelModel{
-					VersionLabel: model.VersionLabel{
-						VersionId: versionModel.ID,
-						Key:       k,
-						Value:     v,
-					},
-				}).Error; err != nil {
+				if _, err := tx.Exec(`
+INSERT INTO catalog_version_label (version_id, key, value)
+VALUES (?, ?, ?)
+`, versionId, k, v); err != nil {
 					tx.Rollback()
 					return err
 				}
 			}
 
 			for _, file := range version.Files {
-				file.VersionId = versionModel.ID
-				if err := tx.Create(&model.FileModel{
-					File: file,
-				}).Error; err != nil {
+				if _, err := tx.Exec(`
+INSERT INTO catalog_file (version_id, name, contents)
+VALUES (?, ?, ?)
+`, versionId, file.Name, file.Contents); err != nil {
 					tx.Rollback()
 					return err
 				}
@@ -186,5 +175,41 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 		}
 	}
 
-	return tx.Commit().Error
+	return tx.Commit()
+}
+
+func (m *Manager) ensureCategoryExists(tx *sql.Tx, category string) (int64, error) {
+	rows, err := tx.Query(`
+SELECT id, name
+FROM catalog_category
+WHERE catalog_category.name = ?
+`, category)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var foundCategory string
+		var foundCategoryId int64
+		if err = rows.Scan(&foundCategoryId, &foundCategory); err != nil {
+			return 0, err
+		}
+		if foundCategory == category {
+			return foundCategoryId, nil
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return 0, err
+	}
+
+	categoryResult, err := tx.Exec(`
+INSERT INTO catalog_category (name)
+VALUES (?)
+`, category)
+	if err != nil {
+		return 0, err
+	}
+
+	return categoryResult.LastInsertId()
 }
