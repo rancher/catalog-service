@@ -26,15 +26,18 @@ func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB) *
 }
 
 func (m *Manager) RefreshAll() error {
-	if err := m.refreshConfigCatalogs(); err != nil {
+	if err := m.readConfig(); err != nil {
 		return err
 	}
-	catalogs, err := m.lookupEnvironmentCatalogs("")
+	if err := m.CreateConfigCatalogs(); err != nil {
+		return err
+	}
+	catalogs, err := m.lookupCatalogs("")
 	if err != nil {
 		return err
 	}
 	for _, catalog := range catalogs {
-		if err := m.refreshCatalog(catalog, nil); err != nil {
+		if err := m.refreshCatalog(catalog); err != nil {
 			return err
 		}
 	}
@@ -43,58 +46,26 @@ func (m *Manager) RefreshAll() error {
 
 func (m *Manager) Refresh(environmentId string) error {
 	if environmentId == "global" {
-		return m.refreshConfigCatalogs()
+		if err := m.readConfig(); err != nil {
+			return err
+		}
+		if err := m.CreateConfigCatalogs(); err != nil {
+			return err
+		}
 	}
-	catalogs, err := m.lookupEnvironmentCatalogs(environmentId)
+	catalogs, err := m.lookupCatalogs(environmentId)
 	if err != nil {
 		return err
 	}
 	for _, catalog := range catalogs {
-		if err := m.refreshCatalog(catalog, nil); err != nil {
+		if err := m.refreshCatalog(catalog); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Manager) refreshConfigCatalogs() error {
-	if err := m.readConfig(); err != nil {
-		return err
-	}
-	if err := m.removeCatalogsNotInConfig(); err != nil {
-		return err
-	}
-
-	for name, config := range m.config {
-		if err := m.refreshCatalog(model.Catalog{
-			Name:          name,
-			URL:           config.URL,
-			Branch:        config.Branch,
-			EnvironmentId: "global",
-		}, func() (*gorm.DB, error) {
-			tx := m.db.Begin()
-
-			var catalogModel model.CatalogModel
-			if err := tx.FirstOrCreate(&catalogModel, &model.CatalogModel{
-				Catalog: model.Catalog{
-					Name:          name,
-					URL:           config.URL,
-					Branch:        config.Branch,
-					EnvironmentId: "global",
-				},
-			}).Error; err != nil {
-				return nil, err
-			}
-
-			return tx, nil
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (m *Manager) refreshCatalog(catalog model.Catalog, txBegin func() (*gorm.DB, error)) error {
+func (m *Manager) refreshCatalog(catalog model.Catalog) error {
 	repoPath, commit, err := m.prepareRepoPath(catalog)
 	if err != nil {
 		return err
@@ -119,15 +90,5 @@ func (m *Manager) refreshCatalog(catalog model.Catalog, txBegin func() (*gorm.DB
 
 	log.Debugf("Updating catalog %s", catalog.Name)
 
-	var tx *gorm.DB
-	if txBegin == nil {
-		tx = m.db.Begin()
-	} else {
-		tx, err = txBegin()
-		if err != nil {
-			return err
-		}
-	}
-
-	return m.updateDb(tx, catalog, templates, commit)
+	return m.updateDb(catalog, templates, commit)
 }
