@@ -2,27 +2,6 @@ package manager
 
 import "github.com/rancher/catalog-service/model"
 
-func (m *Manager) CreateConfigCatalogs() error {
-	if err := m.removeCatalogsNotInConfig(); err != nil {
-		return err
-	}
-
-	for name, config := range m.config {
-		var catalogModel model.CatalogModel
-		if err := m.db.FirstOrCreate(&catalogModel, &model.CatalogModel{
-			Catalog: model.Catalog{
-				Name:          name,
-				URL:           config.URL,
-				Branch:        config.Branch,
-				EnvironmentId: "global",
-			},
-		}).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (m *Manager) removeCatalogsNotInConfig() error {
 	var catalogs []model.CatalogModel
 	m.db.Where(&model.CatalogModel{
@@ -48,19 +27,36 @@ func (m *Manager) removeCatalogsNotInConfig() error {
 func (m *Manager) lookupCatalogs(environmentId string) ([]model.Catalog, error) {
 	var catalogModels []model.CatalogModel
 	if environmentId == "" {
-		m.db.Find(&catalogModels)
+		if err := m.db.Find(&catalogModels).Error; err != nil {
+			return nil, err
+		}
 	} else {
-		m.db.Where(&model.CatalogModel{
+		if err := m.db.Where(&model.CatalogModel{
 			Catalog: model.Catalog{
 				EnvironmentId: environmentId,
 			},
-		}).Find(&catalogModels)
+		}).Find(&catalogModels).Error; err != nil {
+			return nil, err
+		}
 	}
 	var catalogs []model.Catalog
 	for _, catalogModel := range catalogModels {
 		catalogs = append(catalogs, catalogModel.Catalog)
 	}
 	return catalogs, nil
+}
+
+func (m *Manager) lookupCatalog(environmentId, name string) (model.Catalog, error) {
+	var catalogModel model.CatalogModel
+	if err := m.db.Where(&model.CatalogModel{
+		Catalog: model.Catalog{
+			EnvironmentId: environmentId,
+			Name:          name,
+		},
+	}).First(&catalogModel).Error; err != nil {
+		return model.Catalog{}, err
+	}
+	return catalogModel.Catalog, nil
 }
 
 func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, newCommit string) error {

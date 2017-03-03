@@ -26,17 +26,38 @@ func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB) *
 }
 
 func (m *Manager) RefreshAll() error {
+	if err := m.refreshConfigCatalogs(); err != nil {
+		return err
+	}
+	return m.refreshEnvironmentCatalogs("")
+}
+
+func (m *Manager) Refresh(environmentId string) error {
+	if environmentId == "global" {
+		return m.refreshConfigCatalogs()
+	}
+	return m.refreshEnvironmentCatalogs(environmentId)
+}
+
+func (m *Manager) refreshConfigCatalogs() error {
 	if err := m.readConfig(); err != nil {
 		return err
 	}
-	if err := m.CreateConfigCatalogs(); err != nil {
+	if err := m.removeCatalogsNotInConfig(); err != nil {
 		return err
 	}
-	catalogs, err := m.lookupCatalogs("")
-	if err != nil {
-		return err
-	}
-	for _, catalog := range catalogs {
+
+	for name, config := range m.config {
+		catalog := model.Catalog{
+			Name:          name,
+			URL:           config.URL,
+			Branch:        config.Branch,
+			EnvironmentId: "global",
+		}
+		existingCatalog, err := m.lookupCatalog("global", name)
+		if err == nil && existingCatalog.URL == catalog.URL && existingCatalog.Branch == catalog.Branch {
+			catalog = existingCatalog
+		}
 		if err := m.refreshCatalog(catalog); err != nil {
 			return err
 		}
@@ -44,15 +65,7 @@ func (m *Manager) RefreshAll() error {
 	return nil
 }
 
-func (m *Manager) Refresh(environmentId string) error {
-	if environmentId == "global" {
-		if err := m.readConfig(); err != nil {
-			return err
-		}
-		if err := m.CreateConfigCatalogs(); err != nil {
-			return err
-		}
-	}
+func (m *Manager) refreshEnvironmentCatalogs(environmentId string) error {
 	catalogs, err := m.lookupCatalogs(environmentId)
 	if err != nil {
 		return err
