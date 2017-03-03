@@ -1,6 +1,7 @@
 import pytest
 import cattle
 import requests
+import json
 from wait_for import wait_for
 
 
@@ -32,7 +33,7 @@ def create_catalog(name, url, branch=None, headers=DEFAULT_HEADERS):
         data['branch'] = branch
 
     api_url = 'http://localhost:8088/v1-catalog/catalogs'
-    response = requests.post(api_url, data=data, headers=headers)
+    response = requests.post(api_url, data=json.dumps(data), headers=headers)
     assert response.status_code == 200
     resp = response.json()
     assert resp['name'] == name
