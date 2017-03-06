@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/git"
 	"github.com/rancher/catalog-service/model"
 )
@@ -49,7 +50,11 @@ func (m *Manager) prepareRepoPath(catalog model.Catalog) (string, string, error)
 		}
 	} else {
 		if err = git.Update(repoPath, branch); err != nil {
-			return "", "", err
+			// Ignore error unless running in strict mode
+			if m.strict {
+				return "", "", err
+			}
+			log.Errorf("Failed to update existing repo cache: %v", err)
 		}
 	}
 
