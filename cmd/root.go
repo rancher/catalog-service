@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -127,8 +126,8 @@ func run(cmd *cobra.Command, args []string) {
 
 	m := manager.NewManager(cacheRoot, configFile, validateOnly, db)
 	if validateOnly {
-		if err := m.RefreshAll(); err != nil {
-			log.Fatalf("Failed to perform initial catalog refresh: %v", err)
+		if err := m.RefreshAll(true); err != nil {
+			log.Fatalf("Failed to validate catalog: %v", err)
 		}
 		return
 	}
@@ -163,25 +162,20 @@ func formatDSN(user, password, address, dbname, params string) string {
 	return mysqlConfig.FormatDSN()
 }
 
-func validate(m *manager.Manager) {
-	if err := m.RefreshAll(); err != nil {
-		log.Fatalf("Failed to validate catalog: %v", err)
-	}
-	if validateOnly {
-		os.Exit(0)
+func refresh(m *manager.Manager, update bool) {
+	if err := m.RefreshAll(update); err != nil {
+		log.Errorf("Failed to perform catalog refresh: %v", err)
 	}
 }
 
 func autoRefresh(m *manager.Manager, refreshInterval int) {
-	refresh := func() {
-		if err := m.RefreshAll(); err != nil {
-			log.Errorf("Failed to perform catalog refresh: %v", err)
-		}
-	}
-	refresh()
+	// Refresh once without trying to update sources in case internet access isn't available
+	refresh(m, false)
+
+	refresh(m, true)
 	// TODO: don't want to have refresh running twice at the same time
 	for range time.Tick(time.Duration(refreshInterval) * time.Second) {
 		log.Debugf("Performing automatic refresh of all catalogs (interval %d seconds)", refreshInterval)
-		go refresh()
+		go refresh(m, true)
 	}
 }

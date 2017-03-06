@@ -25,21 +25,21 @@ func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB) *
 	}
 }
 
-func (m *Manager) RefreshAll() error {
-	if err := m.refreshConfigCatalogs(); err != nil {
+func (m *Manager) RefreshAll(update bool) error {
+	if err := m.refreshConfigCatalogs(update); err != nil {
 		return err
 	}
-	return m.refreshEnvironmentCatalogs("")
+	return m.refreshEnvironmentCatalogs("", update)
 }
 
-func (m *Manager) Refresh(environmentId string) error {
+func (m *Manager) Refresh(environmentId string, update bool) error {
 	if environmentId == "global" {
-		return m.refreshConfigCatalogs()
+		return m.refreshConfigCatalogs(update)
 	}
-	return m.refreshEnvironmentCatalogs(environmentId)
+	return m.refreshEnvironmentCatalogs(environmentId, update)
 }
 
-func (m *Manager) refreshConfigCatalogs() error {
+func (m *Manager) refreshConfigCatalogs(update bool) error {
 	if err := m.readConfig(); err != nil {
 		return err
 	}
@@ -58,28 +58,28 @@ func (m *Manager) refreshConfigCatalogs() error {
 		if err == nil && existingCatalog.URL == catalog.URL && existingCatalog.Branch == catalog.Branch {
 			catalog = existingCatalog
 		}
-		if err := m.refreshCatalog(catalog); err != nil {
+		if err := m.refreshCatalog(catalog, update); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Manager) refreshEnvironmentCatalogs(environmentId string) error {
+func (m *Manager) refreshEnvironmentCatalogs(environmentId string, update bool) error {
 	catalogs, err := m.lookupCatalogs(environmentId)
 	if err != nil {
 		return err
 	}
 	for _, catalog := range catalogs {
-		if err := m.refreshCatalog(catalog); err != nil {
+		if err := m.refreshCatalog(catalog, update); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Manager) refreshCatalog(catalog model.Catalog) error {
-	repoPath, commit, err := m.prepareRepoPath(catalog)
+func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
+	repoPath, commit, err := m.prepareRepoPath(catalog, update)
 	if err != nil {
 		return err
 	}

@@ -110,11 +110,11 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 }
 
 func refreshTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
-	if err := m.Refresh(envId); err != nil {
+	if err := m.Refresh(envId, true); err != nil {
 		return http.StatusBadRequest, err
 	}
 	if envId != "global" {
-		if err := m.Refresh("global"); err != nil {
+		if err := m.Refresh("global", true); err != nil {
 			return http.StatusBadRequest, err
 		}
 	}
