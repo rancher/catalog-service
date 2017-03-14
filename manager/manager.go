@@ -1,7 +1,9 @@
 package manager
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
@@ -47,6 +49,7 @@ func (m *Manager) refreshConfigCatalogs(update bool) error {
 		return err
 	}
 
+	var refreshErrors []string
 	for name, config := range m.config {
 		catalog := model.Catalog{
 			Name:          name,
@@ -59,8 +62,11 @@ func (m *Manager) refreshConfigCatalogs(update bool) error {
 			catalog = existingCatalog
 		}
 		if err := m.refreshCatalog(catalog, update); err != nil {
-			return err
+			refreshErrors = append(refreshErrors, fmt.Sprintf("%s: %v", catalog.Name, err))
 		}
+	}
+	if len(refreshErrors) > 0 {
+		return errors.New(strings.Join(refreshErrors, "\n"))
 	}
 	return nil
 }
@@ -70,10 +76,15 @@ func (m *Manager) refreshEnvironmentCatalogs(environmentId string, update bool) 
 	if err != nil {
 		return err
 	}
+
+	var refreshErrors []string
 	for _, catalog := range catalogs {
 		if err := m.refreshCatalog(catalog, update); err != nil {
-			return err
+			refreshErrors = append(refreshErrors, fmt.Sprintf("%s: %v", catalog.Name, err))
 		}
+	}
+	if len(refreshErrors) > 0 {
+		return errors.New(strings.Join(refreshErrors, "\n"))
 	}
 	return nil
 }
