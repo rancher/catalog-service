@@ -1,7 +1,9 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -50,26 +52,38 @@ func getCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, erro
 	return 0, nil
 }
 
+type CreateCatalogRequest struct {
+	Name   string
+	URL    string
+	Branch string
+}
+
 func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
-	catalogName := r.FormValue("name")
-	url := r.FormValue("url")
-	branch := r.FormValue("branch")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
 
-	if catalogName == "" {
+	var createCatalogRequest CreateCatalogRequest
+	if err := json.Unmarshal(body, &createCatalogRequest); err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	if createCatalogRequest.Name == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'name'")
 	}
-	if url == "" {
+	if createCatalogRequest.URL == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'url'")
 	}
 
 	catalogModel := model.CatalogModel{
 		Catalog: model.Catalog{
 			EnvironmentId: envId,
-			Name:          catalogName,
-			URL:           url,
-			Branch:        branch,
+			Name:          createCatalogRequest.Name,
+			URL:           createCatalogRequest.URL,
+			Branch:        createCatalogRequest.Branch,
 		},
 	}
 
