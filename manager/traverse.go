@@ -11,12 +11,149 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/rancher/catalog-service/helm"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
 	"gopkg.in/yaml.v2"
 )
 
-func traverseFiles(repoPath string) ([]model.Template, []error, error) {
+func traverseFiles(repoPath, kind string, catalogType CatalogType) ([]model.Template, []error, error) {
+	if kind == "" || kind == RancherTemplateType {
+		return traverseGitFiles(repoPath)
+	}
+	if kind == HelmTemplateType {
+		if catalogType == CatalogTypeHelmGitRepo {
+			return traverseHelmGitFiles(repoPath)
+		}
+		return traverseHelmFiles(repoPath)
+	}
+	return nil, nil, fmt.Errorf("Unknown kind %s", kind)
+}
+
+func traverseHelmGitFiles(repoPath string) ([]model.Template, []error, error) {
+	fullpath := path.Join(repoPath, "stable")
+
+	templates := []model.Template{}
+	var template *model.Template
+	errors := []error{}
+	err := filepath.Walk(fullpath, func(path string, info os.FileInfo, err error) error {
+		if len(path) == len(fullpath) {
+			return nil
+		}
+		relPath := path[len(fullpath)+1:]
+		components := strings.Split(relPath, "/")
+		if len(components) == 1 {
+			if template != nil {
+				templates = append(templates, *template)
+			}
+			template = new(model.Template)
+			template.Versions = make([]model.Version, 0)
+			template.Versions = append(template.Versions, model.Version{
+				Files: make([]model.File, 0),
+			})
+			template.Base = HelmTemplateType
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		if strings.HasSuffix(info.Name(), "Chart.yaml") {
+			metadata, err := helm.LoadMetadata(path)
+			if err != nil {
+				return err
+			}
+			template.Description = metadata.Description
+			template.DefaultVersion = metadata.Version
+			if len(metadata.Sources) > 0 {
+				template.ProjectURL = metadata.Sources[0]
+			}
+			iconData, iconFilename, err := parse.ParseIcon(metadata.Icon)
+			if err != nil {
+				errors = append(errors, err)
+			}
+			rev := 0
+			template.Icon = iconData
+			template.IconFilename = iconFilename
+			template.FolderName = components[0]
+			template.Name = components[0]
+			template.Versions[0].Revision = &rev
+			template.Versions[0].Version = metadata.Version
+		}
+		file, err := helm.LoadFile(path)
+		if err != nil {
+			return err
+		}
+
+		file.Name = relPath
+
+		if strings.HasSuffix(info.Name(), "README.md") {
+			template.Versions[0].Readme = file.Contents
+			return nil
+		}
+
+		template.Versions[0].Files = append(template.Versions[0].Files, *file)
+
+		return nil
+	})
+	return templates, errors, err
+}
+
+func traverseHelmFiles(repoPath string) ([]model.Template, []error, error) {
+	index, err := helm.LoadIndex(repoPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	templates := []model.Template{}
+	var errors []error
+	for chart, metadata := range index.IndexFile.Entries {
+		template := model.Template{
+			Name: chart,
+		}
+		template.Description = metadata[0].Description
+		template.DefaultVersion = metadata[0].Version
+		if len(metadata[0].Sources) > 0 {
+			template.ProjectURL = metadata[0].Sources[0]
+		}
+		iconData, iconFilename, err := parse.ParseIcon(metadata[0].Icon)
+		if err != nil {
+			errors = append(errors, err)
+		}
+		template.Icon = iconData
+		template.IconFilename = iconFilename
+		template.Base = HelmTemplateType
+		versions := make([]model.Version, 0)
+		for i, version := range metadata {
+			v := model.Version{
+				Revision: &i,
+				Version:  version.Version,
+			}
+			files, err := helm.FetchFiles(version.URLs)
+			if err != nil {
+				fmt.Println(err)
+				errors = append(errors, err)
+				continue
+			}
+			filesToAdd := []model.File{}
+			for _, file := range files {
+				if strings.EqualFold(fmt.Sprintf("%s/%s", chart, "readme.md"), file.Name) {
+					v.Readme = file.Contents
+					continue
+				}
+				filesToAdd = append(filesToAdd, file)
+			}
+			v.Files = filesToAdd
+			versions = append(versions, v)
+		}
+		template.FolderName = chart
+		template.Versions = versions
+
+		templates = append(templates, template)
+	}
+	return templates, nil, nil
+}
+
+func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 	templateIndex := map[string]*model.Template{}
 	var errors []error
 
