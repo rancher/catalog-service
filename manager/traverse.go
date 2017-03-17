@@ -7,8 +7,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
 	"gopkg.in/yaml.v2"
@@ -74,6 +76,10 @@ func traverseFiles(repoPath string) ([]model.Template, []error, error) {
 					continue
 				}
 				newVersion.Revision = version.Revision
+				// If version came from folder, use this instead of from rancher-compose.yml
+				if version.Version != "" {
+					newVersion.Version = version.Version
+				}
 				newVersion.Files = version.Files
 			}
 			newVersion.Readme = readme
@@ -168,7 +174,7 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 }
 
 func handleVersionFile(templateIndex map[string]*model.Template, fullPath, relativePath, filename string) error {
-	base, templateName, revision, parsedCorrectly := parse.VersionPath(relativePath)
+	base, templateName, folderName, parsedCorrectly := parse.VersionPath(relativePath)
 	if !parsedCorrectly {
 		return nil
 	}
@@ -187,16 +193,38 @@ func handleVersionFile(templateIndex map[string]*model.Template, fullPath, relat
 	if _, ok := templateIndex[key]; !ok {
 		templateIndex[key] = &model.Template{}
 	}
-	for i, version := range templateIndex[key].Versions {
-		if version.Revision == revision {
-			templateIndex[key].Versions[i].Files = append(version.Files, file)
-			return nil
+
+	// Handle case where folder name is a revision (just a number)
+	revision, err := strconv.Atoi(folderName)
+	if err == nil {
+		for i, version := range templateIndex[key].Versions {
+			if version.Revision != nil && *version.Revision == revision {
+				templateIndex[key].Versions[i].Files = append(version.Files, file)
+				return nil
+			}
 		}
+		templateIndex[key].Versions = append(templateIndex[key].Versions, model.Version{
+			Revision: &revision,
+			Files:    []model.File{file},
+		})
+		return nil
 	}
-	templateIndex[key].Versions = append(templateIndex[key].Versions, model.Version{
-		Revision: revision,
-		Files:    []model.File{file},
-	})
+
+	// Handle case where folder name is version (must be in semver format)
+	_, err = semver.Parse(strings.Trim(folderName, "v"))
+	if err == nil {
+		for i, version := range templateIndex[key].Versions {
+			if version.Version == folderName {
+				templateIndex[key].Versions[i].Files = append(version.Files, file)
+				return nil
+			}
+		}
+		templateIndex[key].Versions = append(templateIndex[key].Versions, model.Version{
+			Version: folderName,
+			Files:   []model.File{file},
+		})
+		return nil
+	}
 
 	return nil
 }
