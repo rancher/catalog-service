@@ -1,11 +1,8 @@
 package parse
 
-import (
-	"strconv"
-	"strings"
-)
+import "strings"
 
-func TemplateURLPath(path string) (string, string, string, int, bool) {
+func TemplateURLPath(path string) (string, string, string, string, bool) {
 	pathSplit := strings.Split(path, ":")
 	switch len(pathSplit) {
 	case 2:
@@ -20,16 +17,13 @@ func TemplateURLPath(path string) (string, string, string, int, bool) {
 			templateBase = templateSplit[0]
 			template = templateSplit[1]
 		default:
-			return "", "", "", 0, false
+			return "", "", "", "", false
 		}
-		return catalog, template, templateBase, -1, true
+		return catalog, template, templateBase, "", true
 	case 3:
 		catalog := pathSplit[0]
 		template := pathSplit[1]
-		revision, err := strconv.Atoi(pathSplit[2])
-		if err != nil {
-			return "", "", "", 0, false
-		}
+		revisionOrVersion := pathSplit[2]
 		templateSplit := strings.Split(template, "*")
 		templateBase := ""
 		switch len(templateSplit) {
@@ -39,11 +33,11 @@ func TemplateURLPath(path string) (string, string, string, int, bool) {
 			templateBase = templateSplit[0]
 			template = templateSplit[1]
 		default:
-			return "", "", "", 0, false
+			return "", "", "", "", false
 		}
-		return catalog, template, templateBase, revision, true
+		return catalog, template, templateBase, revisionOrVersion, true
 	default:
-		return "", "", "", 0, false
+		return "", "", "", "", false
 	}
 }
 
@@ -62,21 +56,16 @@ func TemplatePath(path string) (string, string, bool) {
 	return base, split[1], true
 }
 
-func VersionPath(path string) (string, string, int, bool) {
+func VersionPath(path string) (string, string, string, bool) {
 	base, template, parsedCorrectly := TemplatePath(path)
 	if !parsedCorrectly {
-		return "", "", 0, false
+		return "", "", "", false
 	}
 
 	split := strings.Split(path, "/")
 	if len(split) < 3 {
-		return "", "", 0, false
+		return "", "", "", false
 	}
 
-	revision, err := strconv.Atoi(split[2])
-	if err != nil {
-		return "", "", 0, false
-	}
-
-	return base, template, revision, true
+	return base, template, split[2], true
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -63,14 +64,14 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 
 	rancherVersion := r.URL.Query().Get("rancherVersion")
 
-	catalogName, templateName, templateBase, revisionNumber, _ := parse.TemplateURLPath(catalogTemplateVersion)
+	catalogName, templateName, templateBase, revisionOrVersion, _ := parse.TemplateURLPath(catalogTemplateVersion)
 
 	template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
 	if template == nil {
 		return http.StatusNotFound, errors.New("Template not found")
 	}
 
-	if revisionNumber == -1 {
+	if revisionOrVersion == "" {
 		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
 			icon, err := base64.StdEncoding.DecodeString(template.Icon)
 			if err != nil {
@@ -87,7 +88,13 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 		// Return template
 		apiContext.Write(templateResource(apiContext, catalogName, *template, rancherVersion))
 	} else {
-		version := model.LookupVersion(db, envId, catalogName, templateBase, templateName, revisionNumber)
+		var version *model.Version
+		revision, err := strconv.Atoi(revisionOrVersion)
+		if err == nil {
+			version = model.LookupVersionByRevision(db, envId, catalogName, templateBase, templateName, revision)
+		} else {
+			version = model.LookupVersionByVersion(db, envId, catalogName, templateBase, templateName, revisionOrVersion)
+		}
 		if version == nil {
 			return http.StatusNotFound, errors.New("Version not found")
 		}

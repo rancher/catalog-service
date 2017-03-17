@@ -51,10 +51,13 @@ func URLEncoded(str string) string {
 }
 
 func generateVersionId(catalogName string, template model.Template, version model.Version) string {
-	if template.Base == "" {
-		return fmt.Sprintf("%s:%s:%d", catalogName, template.FolderName, version.Revision)
+	versionId := generateTemplateId(catalogName, template)
+	if version.Revision == nil {
+		versionId += fmt.Sprintf(":%s", version.Version)
+	} else {
+		versionId += fmt.Sprintf(":%d", *version.Revision)
 	}
-	return fmt.Sprintf("%s:%s*%s:%d", catalogName, template.Base, template.FolderName, version.Revision)
+	return versionId
 }
 
 func generateTemplateId(catalogName string, template model.Template) string {
