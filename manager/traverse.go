@@ -76,8 +76,8 @@ func traverseFiles(repoPath string) ([]model.Template, []error, error) {
 					continue
 				}
 				newVersion.Revision = version.Revision
-				// If version came from folder, use this instead of from rancher-compose.yml
-				if version.Version != "" {
+				// If rancher-compose.yml contains version, use this instead of folder version
+				if newVersion.Version == "" {
 					newVersion.Version = version.Version
 				}
 				newVersion.Files = version.Files
