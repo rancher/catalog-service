@@ -109,7 +109,7 @@ def test_get_catalog_404(client):
 
 
 def test_catalog_commit(client):
-    latest_commit = 'e1d90d58cf2861690bbcdb63a12c1a2ec14e93ec'
+    latest_commit = '7efe3a868baa2811c7c0745976cdd4ec3f6ad63b'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
@@ -181,14 +181,16 @@ def test_get_template_with_version_folders(client):
     assert resp['folderName'] == 'version-folders'
 
     versionLinks = resp['versionLinks']
-    assert len(versionLinks) == 2
+    assert len(versionLinks) == 3
     assert 'v0.0.1' in versionLinks
     assert 'v0.0.1-rancher1.2' in versionLinks
+    assert 'v0.0.3' in versionLinks
 
-    id1 = 'orig:version-folders:v0.0.1'
-    id2 = 'orig:version-folders:v0.0.1-rancher1.2'
-    assert id1 in versionLinks.values()[0] or id1 in versionLinks.values()[1]
-    assert id2 in versionLinks.values()[0] or id2 in versionLinks.values()[1]
+    for version in ('v0.0.1', 'v0.0.1-rancher1.2', 'v0.0.3'):
+        version_id = 'orig:version-folders:' + version
+        assert version_id in versionLinks.values()[0] or \
+            version_id in versionLinks.values()[1] or \
+            version_id in versionLinks.values()[2]
 
 
 def test_get_template_404(client):
@@ -401,6 +403,16 @@ def test_get_template_version_by_version(client):
     assert response.status_code == 200
     resp = response.json()
     assert resp['version'] == 'v0.0.1-rancher1.2'
+
+    url = BASE_URL+'templates/orig:version-folders:v0.0.3'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['version'] == 'v0.0.3'
+
+    url = BASE_URL+'templates/orig:version-folders:v0.0.2'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 404
 
 
 def test_get_template_version_404(client):
