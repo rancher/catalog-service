@@ -1,10 +1,12 @@
 {
   "catalogs": {
     "library": {
-      "url": "https://github.com/rancher/rancher-catalog"
+      "url": "https://github.com/rancher/rancher-catalog",
+      "kind": "rancher"
     },
     "community": {
-      "url": "https://github.com/rancher/community-catalog"
+      "url": "https://github.com/rancher/community-catalog",
+      "kind": "rancher"
     }
   }
 }

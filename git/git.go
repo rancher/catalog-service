@@ -26,6 +26,11 @@ func HeadCommit(path string) (string, error) {
 	return strings.Trim(string(output), "\n"), err
 }
 
+func IsValid(url string) bool {
+	err := runcmd("git", "ls-remote", url)
+	return (err == nil)
+}
+
 func runcmd(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	if log.GetLevel() >= log.DebugLevel {

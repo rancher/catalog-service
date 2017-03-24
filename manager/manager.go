@@ -10,6 +10,11 @@ import (
 	"github.com/rancher/catalog-service/model"
 )
 
+const (
+	HelmTemplateType    = "helm"
+	RancherTemplateType = "rancher"
+)
+
 type Manager struct {
 	cacheRoot  string
 	configFile string
@@ -56,6 +61,7 @@ func (m *Manager) refreshConfigCatalogs(update bool) error {
 			URL:           config.URL,
 			Branch:        config.Branch,
 			EnvironmentId: "global",
+			Kind:          config.Kind,
 		}
 		existingCatalog, err := m.lookupCatalog("global", name)
 		if err == nil && existingCatalog.URL == catalog.URL && existingCatalog.Branch == catalog.Branch {
@@ -90,7 +96,7 @@ func (m *Manager) refreshEnvironmentCatalogs(environmentId string, update bool) 
 }
 
 func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
-	repoPath, commit, err := m.prepareRepoPath(catalog, update)
+	repoPath, commit, catalogType, err := m.prepareRepoPath(catalog, update)
 	if err != nil {
 		return err
 	}
@@ -101,11 +107,11 @@ func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
 		return nil
 	}
 
-	templates, errors, err := traverseFiles(repoPath)
+	templates, errors, err := traverseFiles(repoPath, catalog.Kind, catalogType)
 	if err != nil {
 		return err
 	}
-	if errors != nil {
+	if len(errors) != 0 {
 		if m.strict {
 			return fmt.Errorf("%v", errors)
 		}
@@ -113,6 +119,5 @@ func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
 	}
 
 	log.Debugf("Updating catalog %s", catalog.Name)
-
 	return m.updateDb(catalog, templates, commit)
 }
