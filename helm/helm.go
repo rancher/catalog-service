@@ -123,10 +123,10 @@ func FetchFiles(urls []string) ([]model.File, error) {
 				if err != nil {
 					return nil, err
 				}
-				files = append(files, model.File{
+				files = append(files, filterFile(model.File{
 					Name:     name,
 					Contents: string(contents),
-				})
+				}))
 			}
 		}
 	}
@@ -155,8 +155,9 @@ func LoadFile(path string) (*model.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &model.File{
+	filteredFile := filterFile(model.File{
 		Name:     f.Name(),
 		Contents: string(data),
-	}, nil
+	})
+	return &filteredFile, nil
 }

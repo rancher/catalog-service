@@ -51,7 +51,7 @@ func traverseHelmGitFiles(repoPath string) ([]model.Template, []error, error) {
 			template.Versions = append(template.Versions, model.Version{
 				Files: make([]model.File, 0),
 			})
-			template.Base = HelmTemplateType
+			template.Base = HelmTemplateBaseType
 		}
 		if info.IsDir() {
 			return nil
@@ -121,7 +121,7 @@ func traverseHelmFiles(repoPath string) ([]model.Template, []error, error) {
 		}
 		template.Icon = iconData
 		template.IconFilename = iconFilename
-		template.Base = HelmTemplateType
+		template.Base = HelmTemplateBaseType
 		versions := make([]model.Version, 0)
 		for i, version := range metadata {
 			v := model.Version{
