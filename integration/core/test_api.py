@@ -475,19 +475,19 @@ def test_template_version_questions(client):
     assert questions[5]['variable'] == 'TEST_INT'
     assert questions[5]['label'] == 'Integer'
     assert not questions[5]['required']
-    assert questions[5]['default'] == '42'
+    assert questions[5]['default'] == 42
     assert questions[5]['type'] == 'int'
 
     assert questions[6]['variable'] == 'TEST_FLOAT'
     assert questions[6]['label'] == 'Float'
     assert not questions[6]['required']
-    assert questions[6]['default'] == '4.2'
+    assert questions[6]['default'] == 4.2
     assert questions[6]['type'] == 'float'
 
     assert questions[7]['variable'] == 'TEST_BOOLEAN'
     assert questions[7]['label'] == 'Boolean'
     assert not questions[7]['required']
-    assert questions[7]['default'] == 'true'
+    assert questions[7]['default'] is True
     assert questions[7]['type'] == 'boolean'
 
     assert questions[8]['variable'] == 'TEST_SERVICE'
