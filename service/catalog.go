@@ -56,6 +56,7 @@ type CreateCatalogRequest struct {
 	Name   string
 	URL    string
 	Branch string
+	Kind   string
 }
 
 func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
@@ -84,6 +85,7 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 			Name:          createCatalogRequest.Name,
 			URL:           createCatalogRequest.URL,
 			Branch:        createCatalogRequest.Branch,
+			Kind:          createCatalogRequest.Kind,
 		},
 	}
 
