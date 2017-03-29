@@ -12,7 +12,7 @@ import (
 
 const (
 	HelmTemplateType     = "helm"
-	RancherTemplateType  = "rancher"
+	RancherTemplateType  = "native"
 	HelmTemplateBaseType = "kubernetes"
 )
 
