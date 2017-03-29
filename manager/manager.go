@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	HelmTemplateType    = "helm"
-	RancherTemplateType = "rancher"
+	HelmTemplateType     = "helm"
+	RancherTemplateType  = "rancher"
+	HelmTemplateBaseType = "kubernetes"
 )
 
 type Manager struct {
