@@ -7,4 +7,4 @@ cd $(dirname $0)/..
 
 mkdir -p bin
 [ "$(uname)" != "Darwin" ] && LINKFLAGS="-linkmode external -extldflags -static -s"
-go build -ldflags "-X github.com/rancher/catalog-service/cmd.VERSION=$VERSION $LINKFLAGS" -o bin/rancher-catalog-service
+go build -tags "$TAGS" -ldflags "-X github.com/rancher/catalog-service/cmd.VERSION=$VERSION $LINKFLAGS" -o bin/rancher-catalog-service
