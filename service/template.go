@@ -38,8 +38,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, er
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		catalog := model.GetCatalog(db, template.CatalogId)
-		templateResource := templateResource(apiContext, catalog.Name, template, rancherVersion)
+		templateResource := templateResource(apiContext, template.Catalog, template, rancherVersion)
 		if len(templateResource.VersionLinks) > 0 {
 			resp.Data = append(resp.Data, *templateResource)
 		}
