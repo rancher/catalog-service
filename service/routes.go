@@ -90,8 +90,9 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	router.Methods("GET").Path("/v1-catalog").Handler(api.VersionHandler(schemas, "v1-catalog"))
 
 	router.Methods("GET").Path("/v1-catalog/catalogs").Name("GetCatalogs").Handler(handler(schemas, false, getCatalogs))
-	router.Methods("GET").Path("/v1-catalog/catalogs/{catalog}").Name("GetCatalog").Handler(handler(schemas, false, getCatalog))
 	router.Methods("POST").Path("/v1-catalog/catalogs").Name("CreateCatalog").Handler(handler(schemas, true, createCatalog))
+	router.Methods("GET").Path("/v1-catalog/catalogs/{catalog}").Name("GetCatalog").Handler(handler(schemas, false, getCatalog))
+	router.Methods("PUT").Path("/v1-catalog/catalogs/{catalog}").Name("UpdateCatalog").Handler(handler(schemas, false, updateCatalog))
 	router.Methods("DELETE").Path("/v1-catalog/catalogs/{catalog}").Name("DeleteCatalog").Handler(handler(schemas, true, deleteCatalog))
 
 	router.Methods("GET").Path("/v1-catalog/templates").Name("GetTemplates").Handler(handler(schemas, false, getTemplates))

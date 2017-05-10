@@ -135,6 +135,29 @@ def test_catalog_branch(client):
     delete_catalog('branch')
 
 
+def test_catalog_edit(client):
+    url = 'https://github.com/rancher/community-catalog'
+    create_catalog('edit', url)
+
+    url = 'https://github.com/rancher/rancher-catalog'
+    data = {
+        'url': url,
+    }
+
+    api_url = 'http://localhost:8088/v1-catalog/catalogs/edit'
+    response = requests.put(api_url, data=json.dumps(data),
+                            headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+
+    response = requests.get(api_url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+
+    assert resp['url'] == url
+
+    delete_catalog('edit')
+
+
 def test_catalog_different_environment(client):
     original_catalogs = client.list_catalog()
     assert len(original_catalogs) > 0
