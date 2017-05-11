@@ -12,7 +12,8 @@ def headers(environment_id):
     }
 
 
-DEFAULT_HEADERS = headers('e1')
+DEFAULT_ENV = 'e1'
+DEFAULT_HEADERS = headers(DEFAULT_ENV)
 BASE_URL = 'http://localhost:8088/v1-catalog/'
 
 
@@ -371,8 +372,10 @@ def test_upgrade_links(client):
 
 
 def test_template_icon(client):
-    url = 'http://localhost:8088/v1-catalog/templates/orig:nfs-server?image'
-    response = requests.get(url, headers=DEFAULT_HEADERS)
+
+    url = 'http://localhost:8088/v1-catalog/templates/orig:nfs-server' + \
+        '?image&projectId=%s' % (DEFAULT_ENV)
+    response = requests.get(url, headers=headers(''))
     assert response.status_code == 200
     assert len(response.content) == 1139
 

@@ -21,7 +21,10 @@ const (
 func getEnvironmentId(r *http.Request) (string, error) {
 	environment := r.Header.Get(environmentIdHeader)
 	if environment == "" {
-		return "", fmt.Errorf("Request is missing environment header %s", environment)
+		environment = r.URL.Query().Get("projectId")
+		if environment == "" {
+			return "", fmt.Errorf("Request is missing environment header")
+		}
 	}
 	return environment, nil
 }
@@ -77,7 +80,7 @@ func catalogResource(catalog model.Catalog) *model.CatalogResource {
 	}
 }
 
-func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, rancherVersion string) *model.TemplateResource {
+func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, rancherVersion string, envId string) *model.TemplateResource {
 	templateId := generateTemplateId(catalogName, template)
 
 	versionLinks := map[string]string{}
@@ -90,7 +93,8 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 	}
 
 	links := map[string]string{}
-	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
+
+	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image&projectId=%s", templateId, envId)))
 	if template.Readme != "" {
 		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", templateId)))
 	}
@@ -117,7 +121,7 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 	}
 }
 
-func versionResource(apiContext *api.ApiContext, catalogName string, template model.Template, version model.Version, rancherVersion string) (*model.TemplateVersionResource, error) {
+func versionResource(apiContext *api.ApiContext, catalogName string, template model.Template, version model.Version, rancherVersion string, envId string) (*model.TemplateVersionResource, error) {
 	templateId := generateTemplateId(catalogName, template)
 	versionId := generateVersionId(catalogName, template, version)
 
@@ -137,7 +141,8 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 	}
 
 	links := map[string]string{}
-	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image", templateId)))
+	links["icon"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?image&projectId=%s", templateId, envId)))
+
 	if version.Readme != "" {
 		links["readme"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", fmt.Sprintf("%s?readme", versionId)))
 	} else if template.Readme != "" {

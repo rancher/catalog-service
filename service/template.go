@@ -38,7 +38,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, er
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		templateResource := templateResource(apiContext, template.Catalog, template, rancherVersion)
+		templateResource := templateResource(apiContext, template.Catalog, template, rancherVersion, envId)
 		if len(templateResource.VersionLinks) > 0 {
 			resp.Data = append(resp.Data, *templateResource)
 		}
@@ -66,12 +66,13 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 	catalogName, templateName, templateBase, revisionOrVersion, _ := parse.TemplateURLPath(catalogTemplateVersion)
 
 	template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
+
 	if template == nil {
 		return http.StatusNotFound, errors.New("Template not found")
 	}
 
 	if revisionOrVersion == "" {
-		if r.URL.RawQuery != "" && strings.EqualFold("image", r.URL.RawQuery) {
+		if _, ok := r.URL.Query()["image"]; ok {
 			icon, err := base64.StdEncoding.DecodeString(template.Icon)
 			if err != nil {
 				return http.StatusBadRequest, err
@@ -85,7 +86,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 		}
 
 		// Return template
-		apiContext.Write(templateResource(apiContext, catalogName, *template, rancherVersion))
+		apiContext.Write(templateResource(apiContext, catalogName, *template, rancherVersion, envId))
 	} else {
 		var version *model.Version
 		revision, err := strconv.Atoi(revisionOrVersion)
@@ -103,7 +104,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 			return 0, nil
 		}
 
-		versionResource, err := versionResource(apiContext, catalogName, *template, *version, rancherVersion)
+		versionResource, err := versionResource(apiContext, catalogName, *template, *version, rancherVersion, envId)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
