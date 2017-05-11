@@ -130,7 +130,7 @@ func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) (
 	// TODO: this is duplicated
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
-		templateResource := templateResource(apiContext, catalogName, template, rancherVersion)
+		templateResource := templateResource(apiContext, catalogName, template, rancherVersion, envId)
 		if len(templateResource.VersionLinks) > 0 {
 			resp.Data = append(resp.Data, *templateResource)
 		}
