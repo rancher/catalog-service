@@ -52,7 +52,7 @@ func getCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, erro
 	return 0, nil
 }
 
-type CreateCatalogRequest struct {
+type CatalogRequest struct {
 	Name   string
 	URL    string
 	Branch string
@@ -62,39 +62,67 @@ type CreateCatalogRequest struct {
 func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
-	body, err := ioutil.ReadAll(r.Body)
+	catalogModel, err := catalogModelFromRequest(r, envId)
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
 
-	var createCatalogRequest CreateCatalogRequest
-	if err := json.Unmarshal(body, &createCatalogRequest); err != nil {
-		return http.StatusBadRequest, err
-	}
-
-	if createCatalogRequest.Name == "" {
+	if catalogModel.Name == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'name'")
 	}
-	if createCatalogRequest.URL == "" {
+	if catalogModel.URL == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'url'")
 	}
 
-	catalogModel := model.CatalogModel{
-		Catalog: model.Catalog{
-			EnvironmentId: envId,
-			Name:          createCatalogRequest.Name,
-			URL:           createCatalogRequest.URL,
-			Branch:        createCatalogRequest.Branch,
-			Kind:          createCatalogRequest.Kind,
-		},
-	}
-
-	if err := db.Create(&catalogModel).Error; err != nil {
+	if err := db.Create(catalogModel).Error; err != nil {
 		return http.StatusBadRequest, err
 	}
 
 	apiContext.Write(catalogResource(catalogModel.Catalog))
 	return 0, nil
+}
+
+func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+	apiContext := api.GetApiContext(r)
+
+	catalogModel, err := catalogModelFromRequest(r, envId)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	if err := db.Model(&model.CatalogModel{}).Where(&model.CatalogModel{
+		Catalog: model.Catalog{
+			Name:          catalogModel.Name,
+			EnvironmentId: envId,
+		},
+	}).Update(catalogModel).Error; err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	apiContext.Write(catalogResource(catalogModel.Catalog))
+	return 0, nil
+}
+
+func catalogModelFromRequest(r *http.Request, envId string) (*model.CatalogModel, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var catalogRequest CatalogRequest
+	if err := json.Unmarshal(body, &catalogRequest); err != nil {
+		return nil, err
+	}
+
+	return &model.CatalogModel{
+		Catalog: model.Catalog{
+			EnvironmentId: envId,
+			Name:          catalogRequest.Name,
+			URL:           catalogRequest.URL,
+			Branch:        catalogRequest.Branch,
+			Kind:          catalogRequest.Kind,
+		},
+	}, nil
 }
 
 func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
