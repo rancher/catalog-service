@@ -32,6 +32,11 @@ func testNotVersionSatifiesRange(t *testing.T, v, rng string) {
 	assert.False(t, satisfiesRange)
 }
 
+func testInvalidVersion(t *testing.T, v, rng string) {
+	satisfiesRange, _ := VersionSatisfiesRange(v, rng)
+	assert.False(t, satisfiesRange)
+}
+
 func TestVersionSatifiesRange(t *testing.T) {
 	testVersionSatifiesRange(t, "v1.0.0", "=1.0.0")
 	testVersionSatifiesRange(t, "1.0.0", "!2.0.0")
@@ -101,4 +106,26 @@ func TestVersionSatifiesRange(t *testing.T) {
 	testNotVersionSatifiesRange(t, "1.0.0-rancher12", "!v1.0.0-rancher12")
 	testNotVersionSatifiesRange(t, "v1.0.0-rancher5", ">v1.0.0-rancher1 <v1.0.0-rancher3")
 	testNotVersionSatifiesRange(t, "1.0.0-rancher3", "<v1.0.0-rancher2 || >v1.0.0-rancher4")
+
+	testInvalidVersion(t, "versionInvalid-1.0", "versionInvalid-1.0")
+	testInvalidVersion(t, "versionInvalid-1.0", "=versionInvalid-1.0")
+	testInvalidVersion(t, "versionInvalid-1.0", "<versionInvalid-1.0")
+	testInvalidVersion(t, "versionInvalid-1.0", "<=versionInvalid-1.0")
+	testInvalidVersion(t, "versionInvalid-1.0", ">versionInvalid-1.0")
+	testInvalidVersion(t, "versionInvalid-1.0", ">=versionInvalid-1.0")
+
+	testInvalidVersion(t, "v1.0.0-validVersion", "versionInvalid-1.0")
+	testInvalidVersion(t, "v1.0.0-validVersion", "=versionInvalid-1.0")
+	testInvalidVersion(t, "v1.0.0-validVersion", ">versionInvalid-1.0")
+	testInvalidVersion(t, "v1.0.0-validVersion", ">=versionInvalid-1.0")
+	testInvalidVersion(t, "v1.0.0-validVersion", "<versionInvalid-1.0")
+	testInvalidVersion(t, "v1.0.0-validVersion", "<=versionInvalid-1.0")
+
+	testInvalidVersion(t, "versionInvalid-1.0", "v1.0.0-validVersion")
+	testInvalidVersion(t, "versionInvalid-1.0", "=v1.0.0-validVersion")
+	testInvalidVersion(t, "versionInvalid-1.0", ">v1.0.0-validVersion")
+	testInvalidVersion(t, "versionInvalid-1.0", ">=v1.0.0-validVersion")
+	testInvalidVersion(t, "versionInvalid-1.0", "<v1.0.0-validVersion")
+	testInvalidVersion(t, "versionInvalid-1.0", "<=v1.0.0-validVersion")
+
 }
