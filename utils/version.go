@@ -20,12 +20,30 @@ func VersionBetween(a, b, c string) bool {
 	return !VersionGreaterThan(a, b) && !VersionGreaterThan(b, c)
 }
 
-func VersionSatisfiesRange(v, rng string) (bool, error) {
+func formatVersion(v, rng string) (string, string) {
+
 	v = strings.TrimLeft(v, "v")
+
+	rng = strings.TrimLeft(rng, "v")
+	rng = strings.Replace(rng, ">v", ">", -1)
+	rng = strings.Replace(rng, ">=v", ">=", -1)
+	rng = strings.Replace(rng, "<v", "<", -1)
+	rng = strings.Replace(rng, "<=v", "<=", -1)
+	rng = strings.Replace(rng, "=v", "=", -1)
+	rng = strings.Replace(rng, "!v", "!", -1)
+
+	return v, rng
+}
+
+func VersionSatisfiesRange(v, rng string) (bool, error) {
+
+	v, rng = formatVersion(v, rng)
+
 	sv, err := semver.Parse(v)
 	if err != nil {
 		return false, err
 	}
+
 	rangeFunc, err := semver.ParseRange(rng)
 	if err != nil {
 		return false, err
