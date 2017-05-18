@@ -9,7 +9,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/go-rancher/api"
-	"github.com/rancher/go-rancher/client"
 )
 
 func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
@@ -19,13 +18,8 @@ func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) (int, err
 
 	resp := model.CatalogCollection{}
 	for _, catalog := range catalogs {
-		resp.Data = append(resp.Data, model.CatalogResource{
-			Resource: client.Resource{
-				Id:   catalog.Name,
-				Type: "catalog",
-			},
-			Catalog: catalog,
-		})
+
+		resp.Data = append(resp.Data, *catalogResource(catalog, apiContext))
 	}
 
 	apiContext.Write(&resp)
@@ -48,7 +42,7 @@ func getCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, erro
 		return http.StatusNotFound, errors.New("Catalog not found")
 	}
 
-	apiContext.Write(catalogResource(*catalog))
+	apiContext.Write(catalogResource(*catalog, apiContext))
 	return 0, nil
 }
 
@@ -78,7 +72,7 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 		return http.StatusBadRequest, err
 	}
 
-	apiContext.Write(catalogResource(catalogModel.Catalog))
+	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext))
 	return 0, nil
 }
 
@@ -99,7 +93,7 @@ func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 		return http.StatusBadRequest, err
 	}
 
-	apiContext.Write(catalogResource(catalogModel.Catalog))
+	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext))
 	return 0, nil
 }
 
