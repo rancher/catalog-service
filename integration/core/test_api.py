@@ -94,6 +94,17 @@ def test_catalog_list(client):
             assert False
 
 
+def test_get_catalogs(client):
+    url = 'http://localhost:8088/v1-catalog/catalogs'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()['data'][0]
+    assert resp['name'] == 'orig'
+    assert resp['url'] == 'https://github.com/rancher/test-catalog'
+    assert resp['links']['self'] == 'http://localhost:8088/' + \
+        'v1-catalog/catalogs/orig'
+
+
 def test_get_catalog(client):
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
@@ -101,6 +112,8 @@ def test_get_catalog(client):
     resp = response.json()
     assert resp['name'] == 'orig'
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
+    assert resp['links']['self'] == 'http://localhost:8088/' + \
+        'v1-catalog/catalogs/orig'
 
 
 def test_get_catalog_404(client):
@@ -146,11 +159,13 @@ def test_catalog_edit(client):
     }
 
     api_url = 'http://localhost:8088/v1-catalog/catalogs/edit'
+
     response = requests.put(api_url, data=json.dumps(data),
                             headers=DEFAULT_HEADERS)
     assert response.status_code == 200
+    resp = response.json()
 
-    response = requests.get(api_url, headers=DEFAULT_HEADERS)
+    response = requests.get(resp['links']['self'], headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
 

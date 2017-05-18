@@ -70,11 +70,14 @@ func generateTemplateId(catalogName string, template model.Template) string {
 	return fmt.Sprintf("%s:%s*%s", catalogName, template.Base, template.FolderName)
 }
 
-func catalogResource(catalog model.Catalog) *model.CatalogResource {
+func catalogResource(catalog model.Catalog, apiContext *api.ApiContext) *model.CatalogResource {
+	selfLink := apiContext.UrlBuilder.ReferenceByIdLink("catalogs", catalog.Name)
+
 	return &model.CatalogResource{
 		Resource: client.Resource{
-			Id:   catalog.Name,
-			Type: "catalog",
+			Id:    catalog.Name,
+			Type:  "catalog",
+			Links: map[string]string{"self": selfLink},
 		},
 		Catalog: catalog,
 	}
