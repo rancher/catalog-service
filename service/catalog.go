@@ -53,6 +53,23 @@ type CatalogRequest struct {
 	Kind   string
 }
 
+func isDuplicateName(catalogModel *model.CatalogModel) bool {
+
+	catalogs := []model.CatalogModel{}
+	catalogsQuery := `
+	SELECT *
+	FROM catalog
+	WHERE (environment_id = "global" OR environment_id = ?)
+	AND name = ?`
+	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
+
+	if len(catalogs) > 0 {
+		return true
+	}
+
+	return false
+}
+
 func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
@@ -66,6 +83,10 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 	}
 	if catalogModel.URL == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'url'")
+	}
+
+	if isDuplicateName(catalogModel) {
+		return http.StatusBadRequest, errors.New("Duplicate field 'name'")
 	}
 
 	if err := db.Create(catalogModel).Error; err != nil {
@@ -82,6 +103,10 @@ func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 	catalogModel, err := catalogModelFromRequest(r, envId)
 	if err != nil {
 		return http.StatusBadRequest, err
+	}
+
+	if isDuplicateName(catalogModel) {
+		return http.StatusBadRequest, errors.New("Duplicate catalog field 'name'")
 	}
 
 	if err := db.Model(&model.CatalogModel{}).Where(&model.CatalogModel{
