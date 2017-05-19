@@ -70,8 +70,12 @@ func generateTemplateId(catalogName string, template model.Template) string {
 	return fmt.Sprintf("%s:%s*%s", catalogName, template.Base, template.FolderName)
 }
 
-func catalogResource(catalog model.Catalog, apiContext *api.ApiContext) *model.CatalogResource {
+func catalogResource(catalog model.Catalog, apiContext *api.ApiContext, envId string) *model.CatalogResource {
 	selfLink := apiContext.UrlBuilder.ReferenceByIdLink("catalogs", catalog.Name)
+	projectID := envId
+	if projectID != "" {
+		selfLink = selfLink + "?projectId=" + projectID
+	}
 
 	return &model.CatalogResource{
 		Resource: client.Resource{

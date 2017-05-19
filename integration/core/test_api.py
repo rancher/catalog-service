@@ -54,6 +54,27 @@ def create_catalog(name, url, branch=None, headers=DEFAULT_HEADERS):
     return resp
 
 
+def create_duplicate_catalog(name, url, branch=None, headers=DEFAULT_HEADERS):
+    schemas_url = 'http://localhost:8088/v1-catalog/schemas'
+    client = cattle.from_env(url=schemas_url, headers=headers)
+
+    original_catalogs = client.list_catalog()
+    assert len(original_catalogs) > 0
+    original_templates = client.list_template()
+    assert len(original_templates) > 0
+
+    data = {
+        'name': name,
+        'url': url,
+    }
+    if branch:
+        data['branch'] = branch
+
+    api_url = 'http://localhost:8088/v1-catalog/catalogs'
+    response = requests.post(api_url, data=json.dumps(data), headers=headers)
+    assert response.status_code == 422
+
+
 def delete_catalog(name, headers=DEFAULT_HEADERS):
     schemas_url = 'http://localhost:8088/v1-catalog/schemas'
     client = cattle.from_env(url=schemas_url, headers=headers)
@@ -104,7 +125,7 @@ def test_get_catalogs(client):
     assert resp['name'] == 'orig'
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
     assert resp['links']['self'] == 'http://localhost:8088/' + \
-        'v1-catalog/catalogs/orig'
+        'v1-catalog/catalogs/orig?projectId=' + DEFAULT_ENV
 
 
 def test_get_catalog(client):
@@ -115,7 +136,7 @@ def test_get_catalog(client):
     assert resp['name'] == 'orig'
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
     assert resp['links']['self'] == 'http://localhost:8088/' + \
-        'v1-catalog/catalogs/orig'
+        'v1-catalog/catalogs/orig?projectId=' + DEFAULT_ENV
 
 
 def test_get_catalog_404(client):
@@ -151,13 +172,28 @@ def test_catalog_branch(client):
     delete_catalog('branch')
 
 
+def test_catalog_duplicate_env_name(client):
+    url = 'https://github.com/rancher/test-catalog'
+    create_catalog('test', url)
+    create_duplicate_catalog('test', url)
+    delete_catalog('test')
+
+
+def test_catalog_duplicate_global_name(client):
+    # orig is the name of a global catalog that already exists
+    url = 'https://github.com/rancher/test-catalog'
+    create_duplicate_catalog('orig', url)
+
+
 def test_catalog_edit(client):
     url = 'https://github.com/rancher/community-catalog'
     create_resp = create_catalog('edit', url)
 
     url = 'https://github.com/rancher/rancher-catalog'
+    different_name = 'different_name'
     data = {
         'url': url,
+        'name': different_name,
     }
 
     api_url = create_resp['links']['self']
@@ -172,8 +208,9 @@ def test_catalog_edit(client):
     resp = response.json()
 
     assert resp['url'] == url
+    assert resp['name'] == different_name
 
-    delete_catalog('edit')
+    delete_catalog(different_name)
 
 
 def test_catalog_different_environment(client):
