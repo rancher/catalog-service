@@ -399,7 +399,7 @@ def test_upgrade_links(client):
     resp = response.json()
     upgradeLinks = resp['upgradeVersionLinks']
     assert upgradeLinks is not None
-    assert len(upgradeLinks) == 10
+    assert len(upgradeLinks) == 1
 
     url = 'http://localhost:8088/v1-catalog/templates/orig:many-versions:2' + \
         '?rancherVersion=v1.0.1'
@@ -408,7 +408,7 @@ def test_upgrade_links(client):
     resp = response.json()
     upgradeLinks = resp['upgradeVersionLinks']
     assert upgradeLinks is not None
-    assert len(upgradeLinks) == 7
+    assert len(upgradeLinks) == 0
 
 
 def test_template_icon(client):

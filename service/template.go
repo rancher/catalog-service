@@ -53,6 +53,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, er
 }
 
 func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+
 	apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 
@@ -65,6 +66,12 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 
 	catalogName, templateName, templateBase, revisionOrVersion, _ := parse.TemplateURLPath(catalogTemplateVersion)
 
+	if err := m.RefreshOne(envId, catalogName, true); err != nil {
+		if err := m.RefreshOne("global", catalogName, true); err != nil {
+			return http.StatusBadRequest, err
+		}
+	}
+
 	template := model.LookupTemplate(db, envId, catalogName, templateName, templateBase)
 
 	if template == nil {
@@ -72,6 +79,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 	}
 
 	if revisionOrVersion == "" {
+
 		if _, ok := r.URL.Query()["image"]; ok {
 			icon, err := base64.StdEncoding.DecodeString(template.Icon)
 			if err != nil {
