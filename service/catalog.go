@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -19,7 +20,7 @@ func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) (int, err
 	resp := model.CatalogCollection{}
 	for _, catalog := range catalogs {
 
-		resp.Data = append(resp.Data, *catalogResource(catalog, apiContext))
+		resp.Data = append(resp.Data, *catalogResource(catalog, apiContext, envId))
 	}
 
 	apiContext.Write(&resp)
@@ -42,7 +43,7 @@ func getCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, erro
 		return http.StatusNotFound, errors.New("Catalog not found")
 	}
 
-	apiContext.Write(catalogResource(*catalog, apiContext))
+	apiContext.Write(catalogResource(*catalog, apiContext, envId))
 	return 0, nil
 }
 
@@ -51,6 +52,60 @@ type CatalogRequest struct {
 	URL    string
 	Branch string
 	Kind   string
+}
+
+func isDuplicateName(catalogModel *model.CatalogModel) bool {
+
+	catalogs := []model.CatalogModel{}
+	catalogsQuery := `
+	SELECT *
+	FROM catalog
+	WHERE (environment_id = "global" OR environment_id = ?)
+	AND name = ?`
+	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
+
+	if len(catalogs) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func isDuplicateEnvName(catalogModel *model.CatalogModel, oldCatalogName string) bool {
+
+	if oldCatalogName == catalogModel.Name {
+		return false
+	}
+
+	catalogs := []model.CatalogModel{}
+	catalogsQuery := `
+	SELECT *
+	FROM catalog
+	WHERE (environment_id = ?)
+	AND name = ?`
+	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
+
+	if len(catalogs) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func isDuplicateGlobalName(catalogModel *model.CatalogModel) bool {
+	catalogs := []model.CatalogModel{}
+	catalogsQuery := `
+	SELECT *
+	FROM catalog
+	WHERE environment_id = "global"
+	AND name = ?`
+	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
+
+	if len(catalogs) > 0 {
+		return true
+	}
+
+	return false
 }
 
 func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
@@ -68,12 +123,34 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 		return http.StatusBadRequest, errors.New("Missing field 'url'")
 	}
 
+	if isDuplicateName(catalogModel) {
+		return http.StatusUnprocessableEntity, fmt.Errorf("Catalog name %s already exists", catalogModel.Name)
+	}
+
 	if err := db.Create(catalogModel).Error; err != nil {
 		return http.StatusBadRequest, err
 	}
 
-	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext))
+	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext, ""))
 	return 0, nil
+}
+
+func catalogExists(catalogModel *model.CatalogModel, envId string) bool {
+	query := `
+	SELECT *
+	FROM catalog
+	WHERE name = ?
+	AND environment_id = ?`
+
+	catalog := []model.CatalogModel{}
+
+	db.Raw(query, catalogModel.Name, envId).Find(&catalog)
+
+	if len(catalog) > 0 {
+		return true
+	}
+
+	return false
 }
 
 func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
@@ -84,16 +161,33 @@ func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 		return http.StatusBadRequest, err
 	}
 
-	if err := db.Model(&model.CatalogModel{}).Where(&model.CatalogModel{
+	vars := mux.Vars(r)
+	oldCatalogName := vars["catalog"]
+
+	oldCatalog := model.CatalogModel{
 		Catalog: model.Catalog{
-			Name:          catalogModel.Name,
+			Name:          oldCatalogName,
 			EnvironmentId: envId,
 		},
-	}).Update(catalogModel).Error; err != nil {
+	}
+
+	if isDuplicateGlobalName(catalogModel) {
+		return http.StatusUnprocessableEntity, fmt.Errorf("Catalog name %s already exists", catalogModel.Name)
+	}
+
+	if isDuplicateEnvName(catalogModel, oldCatalogName) {
+		return http.StatusUnprocessableEntity, fmt.Errorf("Catalog name %s already exists", catalogModel.Name)
+	}
+
+	if !catalogExists(&oldCatalog, envId) {
+		return http.StatusNotFound, errors.New("Catalog not found")
+	}
+
+	if err := db.Model(&model.CatalogModel{}).Where(&oldCatalog).Update(catalogModel).Error; err != nil {
 		return http.StatusBadRequest, err
 	}
 
-	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext))
+	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext, ""))
 	return 0, nil
 }
 
