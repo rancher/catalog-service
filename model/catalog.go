@@ -50,12 +50,28 @@ func LookupCatalog(db *gorm.DB, environmentId, name string) *Catalog {
 }
 
 func LookupCatalogs(db *gorm.DB, environmentId string) []Catalog {
+
 	var catalogModels []CatalogModel
 	db.Where("environment_id = ? OR environment_id = ?", environmentId, "global").Find(&catalogModels)
+
 	var catalogs []Catalog
+
+	catalogMap := make(map[string]Catalog)
+
 	for _, catalogModel := range catalogModels {
-		catalogs = append(catalogs, catalogModel.Catalog)
+		if _, exist := catalogMap[catalogModel.Name]; !exist || (exist && catalogModel.EnvironmentId == "global") {
+			catalogMap[catalogModel.Name] = catalogModel.Catalog
+		}
+
+		// @TODO: Remove comment and references to "duplicateMap" when
+		// global catalogs are added through API
+		//catalogs = append(catalogs, catalogModel.Catalog)
 	}
+
+	for _, catalog := range catalogMap {
+		catalogs = append(catalogs, catalog)
+	}
+
 	return catalogs
 }
 
