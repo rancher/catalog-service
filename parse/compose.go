@@ -7,6 +7,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func CatalogInfoFromTemplateVersion(contents []byte) (model.Version, error) {
+
+	var template model.Version
+	if err := yaml.Unmarshal(contents, &template); err != nil {
+		return model.Version{}, err
+	}
+
+	return template, nil
+}
+
 func CatalogInfoFromRancherCompose(contents []byte) (model.Version, error) {
 	cfg, err := config.CreateConfig(contents)
 	if err != nil {
