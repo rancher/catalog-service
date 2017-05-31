@@ -238,7 +238,7 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 
 func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath, filename string) error {
 	switch {
-	case filename == "config.yml":
+	case filename == "config.yml" || filename == "template.yml":
 		base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 		if !parsedCorrectly {
 			return nil
@@ -263,7 +263,7 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 			template.Versions = existingTemplate.Versions
 		}
 		templateIndex[key] = &template
-	case strings.HasPrefix(filename, "catalogIcon"):
+	case strings.HasPrefix(filename, "catalogIcon") || strings.HasPrefix(filename, "icon"):
 		base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 		if !parsedCorrectly {
 			return nil
