@@ -15,6 +15,58 @@ import (
 	"github.com/rancher/go-rancher/api"
 )
 
+// Removes template that belongs to a duplicate catalog
+func removeDuplicateCatalogTemplate(templates []model.Template, envId string) []model.Template {
+
+	catalogIds := []uint{}
+	templateMap := make(map[uint][]model.Template)
+	for _, template := range templates {
+
+		if _, exists := templateMap[template.CatalogId]; !exists {
+			templateMap[template.CatalogId] = []model.Template{}
+		}
+
+		templateMap[template.CatalogId] = append(templateMap[template.CatalogId], template)
+		catalogIds = append(catalogIds, template.CatalogId)
+	}
+
+	query := `
+	SELECT *
+	FROM catalog
+	WHERE catalog.id IN (?)`
+	catalogs := []model.CatalogModel{}
+	db.Raw(query, catalogIds).Find(&catalogs)
+
+	// make sure to check for envID
+	catalogMap := make(map[string]uint)
+	duplicateCatalogMap := make(map[string]uint)
+	for _, catalog := range catalogs {
+		_, exist := catalogMap[catalog.Name]
+		if exist && catalog.EnvironmentId == "global" {
+			duplicateCatalogMap[catalog.Name] = catalogMap[catalog.Name]
+			catalogMap[catalog.Name] = catalog.ID
+		} else if exist && catalog.EnvironmentId != "global" {
+			duplicateCatalogMap[catalog.Name] = catalog.ID
+		} else {
+			catalogMap[catalog.Name] = catalog.ID
+		}
+	}
+
+	for _, catalogId := range duplicateCatalogMap {
+		if _, exist := templateMap[catalogId]; exist {
+			delete(templateMap, catalogId)
+		}
+	}
+
+	finalTemplates := []model.Template{}
+	for _, templateSlice := range templateMap {
+		finalTemplates = append(finalTemplates, templateSlice...)
+	}
+
+	return finalTemplates
+
+}
+
 func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
 	apiContext := api.GetApiContext(r)
 
@@ -35,6 +87,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, er
 	categoriesNe, _ := r.URL.Query()["category_ne"]
 
 	templates := model.LookupTemplates(db, envId, catalog, templateBaseEq, categories, categoriesNe)
+	templates = removeDuplicateCatalogTemplate(templates, envId)
 
 	resp := model.TemplateCollection{}
 	for _, template := range templates {
