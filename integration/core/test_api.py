@@ -146,7 +146,7 @@ def test_get_catalog_404(client):
 
 
 def test_catalog_commit(client):
-    latest_commit = '7efe3a868baa2811c7c0745976cdd4ec3f6ad63b'
+    latest_commit = 'c2e6d0351e865317c98e22e3132d0849cdc52610'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
@@ -243,6 +243,21 @@ def test_get_template(client):
 
     assert resp['catalogId'] == 'orig'
     assert resp['folderName'] == 'k8s'
+    assert resp['defaultVersion'] == 'v1.3.0-rancher4'
+
+    assert len(resp['categories']) == 1
+    assert resp['categories'][0] == 'System'
+
+
+def test_get_template_template_version(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:k8s-template-version'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+
+    assert resp['catalogId'] == 'orig'
+    assert resp['folderName'] == 'k8s-template-version'
     assert resp['defaultVersion'] == 'v1.3.0-rancher4'
 
     assert len(resp['categories']) == 1
@@ -471,6 +486,22 @@ def test_get_template_version_by_revision(client):
     assert resp['version'] == 'v1.2.4-rancher6'
 
 
+def test_get_template_version_by_revision_template_version(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:k8s-template-version:0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['version'] == 'v0.1.0-rancher1'
+
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:k8s-template-version:1'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['version'] == 'v1.2.4-rancher6'
+
+
 def test_get_template_version_by_version(client):
     url = BASE_URL+'templates/orig:version-folders:v0.0.1'
     response = requests.get(url, headers=DEFAULT_HEADERS)
@@ -501,6 +532,13 @@ def test_get_template_version_404(client):
     assert response.status_code == 404
 
 
+def test_get_template_version_404_template_version(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:k8s-template-version:1000'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 404
+
+
 def test_get_template_version_labels(client):
     url = 'http://localhost:8088/v1-catalog/templates/orig:version-labels:0'
     response = requests.get(url, headers=DEFAULT_HEADERS)
@@ -514,6 +552,84 @@ def test_get_template_version_labels(client):
 def test_template_version_questions(client):
     url = 'http://localhost:8088/v1-catalog/templates/' + \
         'orig:all-question-types:1'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    questions = resp['questions']
+    assert questions is not None
+    assert len(questions) == 11
+
+    assert questions[0]['variable'] == 'TEST_STRING'
+    assert questions[0]['label'] == 'String'
+    assert not questions[0]['required']
+    assert questions[0]['default'] == 'hello'
+    assert questions[0]['type'] == 'string'
+
+    assert questions[1]['variable'] == 'TEST_MULTILINE'
+    assert questions[1]['label'] == 'Multi-Line'
+    assert not questions[1]['required']
+    assert questions[1]['default'] == 'Hello\nWorld\n'
+    assert questions[1]['type'] == 'multiline'
+
+    assert questions[2]['variable'] == 'TEST_PASSWORD'
+    assert questions[2]['label'] == 'Password'
+    assert not questions[2]['required']
+    assert questions[2]['default'] == "not-so-secret stuff"
+    assert questions[2]['type'] == 'password'
+
+    assert questions[3]['variable'] == 'TEST_ENUM'
+    assert questions[3]['label'] == 'Enum'
+    assert not questions[3]['required']
+    assert questions[3]['options'] == ['purple', 'monkey', 'dishwasher']
+    assert questions[3]['default'] == 'monkey'
+    assert questions[3]['type'] == 'enum'
+
+    assert questions[4]['variable'] == 'TEST_DATE'
+    assert questions[4]['label'] == 'Date'
+    assert not questions[4]['required']
+    assert questions[4]['default'] == '2015-07-25T19:55:00Z'
+    assert questions[4]['type'] == 'date'
+
+    assert questions[5]['variable'] == 'TEST_INT'
+    assert questions[5]['label'] == 'Integer'
+    assert not questions[5]['required']
+    assert questions[5]['default'] == '42'
+    assert questions[5]['type'] == 'int'
+
+    assert questions[6]['variable'] == 'TEST_FLOAT'
+    assert questions[6]['label'] == 'Float'
+    assert not questions[6]['required']
+    assert questions[6]['default'] == '4.2'
+    assert questions[6]['type'] == 'float'
+
+    assert questions[7]['variable'] == 'TEST_BOOLEAN'
+    assert questions[7]['label'] == 'Boolean'
+    assert not questions[7]['required']
+    assert questions[7]['default'] == 'true'
+    assert questions[7]['type'] == 'boolean'
+
+    assert questions[8]['variable'] == 'TEST_SERVICE'
+    assert questions[8]['label'] == 'Service'
+    assert not questions[8]['required']
+    assert questions[8]['default'] == 'kopf'
+    assert questions[8]['type'] == 'service'
+
+    assert questions[9]['variable'] == 'TEST_CERTIFICATE'
+    assert questions[9]['label'] == 'Certificate'
+    assert not questions[9]['required']
+    assert questions[9]['default'] == 'rancher.rocks'
+    assert questions[9]['type'] == 'certificate'
+
+    assert questions[10]['variable'] == 'TEST_UNKNOWN'
+    assert questions[10]['label'] == 'Unknown'
+    assert not questions[10]['required']
+    assert questions[10]['default'] == 'wha?'
+    assert questions[10]['type'] == 'unknown'
+
+
+def test_template_version_questions_template_version(client):
+    url = 'http://localhost:8088/v1-catalog/templates/' + \
+        'orig:all-question-types-template-version:1'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
     resp = response.json()
