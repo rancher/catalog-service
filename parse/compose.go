@@ -7,6 +7,29 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func consolidateTemplateCamelSnakeCase(template model.Version) model.Version {
+
+	if template.MinimumRancherVersionSnakeCase != "" {
+		template.MinimumRancherVersion = template.MinimumRancherVersionSnakeCase
+	} else if template.MinimumRancherVersionCamelCase != "" {
+		template.MinimumRancherVersion = template.MinimumRancherVersionCamelCase
+	}
+
+	if template.MaximumRancherVersionSnakeCase != "" {
+		template.MaximumRancherVersion = template.MaximumRancherVersionSnakeCase
+	} else if template.MaximumRancherVersionCamelCase != "" {
+		template.MaximumRancherVersion = template.MaximumRancherVersionCamelCase
+	}
+
+	if template.UpgradeFromSnakeCase != "" {
+		template.UpgradeFrom = template.UpgradeFromSnakeCase
+	} else if template.UpgradeFromCamelCase != "" {
+		template.UpgradeFrom = template.UpgradeFromCamelCase
+	}
+
+	return template
+}
+
 func CatalogInfoFromTemplateVersion(contents []byte) (model.Version, error) {
 
 	var template model.Version
@@ -14,7 +37,7 @@ func CatalogInfoFromTemplateVersion(contents []byte) (model.Version, error) {
 		return model.Version{}, err
 	}
 
-	return template, nil
+	return consolidateTemplateCamelSnakeCase(template), nil
 }
 
 func CatalogInfoFromRancherCompose(contents []byte) (model.Version, error) {
@@ -44,7 +67,7 @@ func CatalogInfoFromRancherCompose(contents []byte) (model.Version, error) {
 		if err := utils.Convert(rawCatalogConfig, &template); err != nil {
 			return model.Version{}, err
 		}
-		return template, nil
+		return consolidateTemplateCamelSnakeCase(template), nil
 	}
 
 	return model.Version{}, nil
