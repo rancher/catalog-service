@@ -19,12 +19,18 @@ AND catalog_template.folder_name = ?`
 type Version struct {
 	TemplateId uint `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
 
-	Revision              *int   `json:"revision"`
-	Version               string `json:"version"`
-	MinimumRancherVersion string `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
-	MaximumRancherVersion string `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
-	UpgradeFrom           string `json:"upgradeFrom" yaml:"upgrade_from"`
-	Readme                string `json:"readme"`
+	Revision                       *int   `json:"revision"`
+	Version                        string `json:"version"`
+	MinimumRancherVersion          string
+	MinimumRancherVersionCamelCase string `json:"minimumRancherVersion" yaml:"minimumRancherVersion"`
+	MinimumRancherVersionSnakeCase string `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
+	MaximumRancherVersion          string
+	MaximumRancherVersionCamelCase string `json:"maximumRancherVersion" yaml:"maximumRancherVersion"`
+	MaximumRancherVersionSnakeCase string `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
+	UpgradeFrom                    string
+	UpgradeFromCamelCase           string `json:"upgradeFrom" yaml:"upgradeFrom"`
+	UpgradeFromSnakeCase           string `json:"upgradeFrom" yaml:"upgrade_from"`
+	Readme                         string `json:"readme"`
 
 	Labels map[string]string `sql:"-" json:"labels"`
 
@@ -78,11 +84,13 @@ AND catalog_version.version = ?
 
 func lookupVersions(db *gorm.DB, templateId uint) []Version {
 	var versionModels []VersionModel
-	db.Where(&VersionModel{
-		Version: Version{
-			TemplateId: templateId,
-		},
-	}).Find(&versionModels)
+
+	query := `
+	SELECT *
+	FROM catalog_version
+	WHERE template_id = ?`
+
+	db.Raw(query, templateId).Find(&versionModels)
 
 	var versions []Version
 	for _, versionModel := range versionModels {

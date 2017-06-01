@@ -1,6 +1,10 @@
 package manager
 
-import "github.com/rancher/catalog-service/model"
+import (
+	"time"
+
+	"github.com/rancher/catalog-service/model"
+)
 
 func (m *Manager) removeCatalogsNotInConfig() error {
 	var catalogs []model.CatalogModel
@@ -86,8 +90,10 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 		templateModel := model.TemplateModel{
 			Template: template,
 		}
+
 		if err := tx.Create(&templateModel).Error; err != nil {
 			tx.Rollback()
+
 			return err
 		}
 
@@ -153,10 +159,34 @@ func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, ne
 
 		for _, version := range template.Versions {
 			version.TemplateId = templateModel.ID
-			versionModel := model.VersionModel{
-				Version: version,
+			versionModel := struct {
+				ID                    uint `gorm:"primary_key"`
+				CreatedAt             time.Time
+				UpdatedAt             time.Time
+				TemplateId            uint              `sql:"type:integer REFERENCES catalog_template(id) ON DELETE CASCADE"`
+				Revision              *int              `json:"revision"`
+				Version               string            `json:"version"`
+				MinimumRancherVersion string            `json:"minimumRancherVersion" yaml:"minimum_rancher_version"`
+				MaximumRancherVersion string            `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
+				UpgradeFrom           string            `json:"upgradeFrom" yaml:"upgrade_from"`
+				Readme                string            `json:"readme"`
+				Labels                map[string]string `sql:"-" json:"labels"`
+				Files                 []model.File      `sql:"-"`
+				Questions             []model.Question  `sql:"-"`
+			}{
+				TemplateId:            version.TemplateId,
+				Revision:              version.Revision,
+				Version:               version.Version,
+				MinimumRancherVersion: version.MinimumRancherVersion,
+				MaximumRancherVersion: version.MaximumRancherVersion,
+				UpgradeFrom:           version.UpgradeFrom,
+				Readme:                version.Readme,
+				Labels:                version.Labels,
+				Files:                 version.Files,
+				Questions:             version.Questions,
 			}
-			if err := tx.Create(&versionModel).Error; err != nil {
+
+			if err := tx.Table("catalog_version").Create(&versionModel).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
