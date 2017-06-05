@@ -173,6 +173,7 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 		if showUpgradeVersion(version, upgradeVersion, rancherVersion) {
 			route := generateVersionId(catalogName, template, upgradeVersion)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
+			link = link + "?projectId=" + envId
 			upgradeVersionLinks[upgradeVersion.Version] = URLEncoded(link)
 		}
 	}
@@ -192,6 +193,7 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 }
 
 func showUpgradeVersion(version, upgradeVersion model.Version, rancherVersion string) bool {
+
 	if !utils.VersionGreaterThan(upgradeVersion.Version, version.Version) {
 		return false
 	}
@@ -205,5 +207,6 @@ func showUpgradeVersion(version, upgradeVersion model.Version, rancherVersion st
 		}
 		return satisfiesRange
 	}
-	return true
+
+	return false
 }

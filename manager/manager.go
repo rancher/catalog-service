@@ -47,6 +47,15 @@ func (m *Manager) Refresh(environmentId string, update bool) error {
 	return m.refreshEnvironmentCatalogs(environmentId, update)
 }
 
+func (m *Manager) RefreshOne(environmentId string, catalogName string, update bool) error {
+	catalog, err := m.lookupCatalog(environmentId, catalogName)
+	if err != nil {
+		return err
+	}
+
+	return m.refreshCatalog(catalog, update)
+}
+
 func (m *Manager) refreshConfigCatalogs(update bool) error {
 	if err := m.readConfig(); err != nil {
 		return err
