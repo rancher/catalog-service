@@ -7,6 +7,32 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func TemplateInfo(contents []byte) (model.Template, error) {
+
+	var data map[string]interface{}
+	if err := yaml.Unmarshal([]byte(contents), &data); err != nil {
+		return model.Template{}, err
+	}
+
+	if _, exists := data["projectURL"]; exists {
+		data["project_url"] = data["projectURL"]
+	}
+
+	if _, exists := data["version"]; exists {
+		data["default_version"] = data["version"]
+	} else if _, exists := data["defaultVersion"]; exists {
+		data["default_version"] = data["defaultVersion"]
+	}
+
+	var template model.Template
+	if err := utils.Convert(data, &template); err != nil {
+		return model.Template{}, err
+	}
+
+	return template, nil
+
+}
+
 func CatalogInfoFromTemplateVersion(contents []byte) (model.Version, error) {
 
 	var template model.Version
