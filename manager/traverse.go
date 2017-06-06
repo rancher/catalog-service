@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/blang/semver"
 	"github.com/rancher/catalog-service/helm"
 	"github.com/rancher/catalog-service/model"
@@ -263,10 +261,12 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 		if err != nil {
 			return err
 		}
+
 		var template model.Template
-		if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
+		if template, err = parse.TemplateInfo(contents); err != nil {
 			return err
 		}
+
 		template.Base = base
 		template.FolderName = templateName
 

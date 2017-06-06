@@ -146,7 +146,7 @@ def test_get_catalog_404(client):
 
 
 def test_catalog_commit(client):
-    latest_commit = 'c2e6d0351e865317c98e22e3132d0849cdc52610'
+    latest_commit = '1b1fa1ba6c36516fa39ac3ff49d75072d9c98ffc'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
@@ -735,3 +735,32 @@ def test_v2_syntax(client):
             str(revision)
         response = requests.get(url, headers=DEFAULT_HEADERS)
         assert response.status_code == 200
+
+
+def test_alternative_config_fields_1(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:alternative-config-fields-1'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['defaultVersion'] == '3.0.0'
+    assert resp['links']['project'] == 'www.test.com'
+
+
+def test_alternative_config_fields_2(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:alternative-config-fields-2'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['defaultVersion'] == '3.0.0'
+    assert resp['links']['project'] == 'www.test.com'
+
+
+def test_alternative_config_fields_3(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:alternative-config-fields-3'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['defaultVersion'] == '3.0.0'
