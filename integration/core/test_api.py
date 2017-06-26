@@ -146,7 +146,7 @@ def test_get_catalog_404(client):
 
 
 def test_catalog_commit(client):
-    latest_commit = '1b1fa1ba6c36516fa39ac3ff49d75072d9c98ffc'
+    latest_commit = '4ec17d4c057be16e01fecb599af16b2b9dda9065'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
@@ -764,3 +764,51 @@ def test_alternative_config_fields_3(client):
     assert response.status_code == 200
     resp = response.json()
     assert resp['defaultVersion'] == '3.0.0'
+
+
+def test_default_versions_1(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:default-versions-1'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+
+    assert resp['links']['defaultVersion'] == 'http://' + \
+        'localhost:8088/v1-catalog/templates/orig:default-versions-1:2'
+
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:default-versions-1:0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['links']['defaultUpgradeVersion'] == 'http://localhost:' + \
+        '8088/v1-catalog/templates/orig:default-versions-1:2'
+
+
+def test_default_versions_2(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:default-versions-2'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['links']['defaultVersion'] == 'http://' + \
+        'localhost:8088/v1-catalog/templates/orig:default-versions-2:3'
+
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:default-versions-2:0'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+
+    assert resp['links']['defaultUpgradeVersion'] == 'http://' + \
+        'localhost:8088/v1-catalog/templates/orig:default-versions-2:2'
+
+
+def test_default_versions_3(client):
+    url = 'http://localhost:8088/v1-catalog/templates' + \
+        '/orig:default-versions-3'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    assert resp['links']['defaultVersion'] == 'http://' + \
+        'localhost:8088/v1-catalog/templates/orig:default-versions-3:2'

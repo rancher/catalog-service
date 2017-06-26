@@ -1,6 +1,9 @@
 package model
 
 import (
+	"strings"
+
+	"github.com/blang/semver"
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/go-rancher/client"
 )
@@ -32,6 +35,8 @@ type Version struct {
 	Questions []Question `sql:"-"`
 }
 
+type Versions []Version
+
 type VersionModel struct {
 	Base
 	Version
@@ -46,6 +51,23 @@ type TemplateVersionResource struct {
 	Questions           []Question          `json:"questions"`
 	UpgradeVersionLinks map[string]string   `json:"upgradeVersionLinks"`
 	TemplateId          string              `json:"templateId"`
+}
+
+func (v Versions) Len() int {
+	return len(v)
+}
+
+func (v Versions) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
+}
+
+func (v Versions) Less(i, j int) bool {
+
+	a, _ := semver.Make(strings.TrimLeft(v[i].Version, "v"))
+	b, _ := semver.Make(strings.TrimLeft(v[j].Version, "v"))
+
+	boolean := a.LT(b)
+	return boolean
 }
 
 func LookupVersionByRevision(db *gorm.DB, environmentId, catalog, base, template string, revision int) *Version {
