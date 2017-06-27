@@ -22,14 +22,16 @@ type Manager struct {
 	config     map[string]CatalogConfig
 	strict     bool
 	db         *gorm.DB
+	uuid       string
 }
 
-func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB) *Manager {
+func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB, uuid string) *Manager {
 	return &Manager{
 		cacheRoot:  cacheRoot,
 		configFile: configFile,
 		strict:     strict,
 		db:         db,
+		uuid:       uuid,
 	}
 }
 

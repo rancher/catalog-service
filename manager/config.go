@@ -3,6 +3,8 @@ package manager
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/url"
+	"strings"
 )
 
 type CatalogType int
@@ -31,6 +33,15 @@ func (m *Manager) readConfig() error {
 		return err
 	}
 
+	for catalogName, catalogConfig := range config["catalogs"] {
+		if u, err := url.Parse(catalogConfig.URL); err == nil {
+			if strings.Split(u.Host, ":")[0] == "git.rancher.io" {
+				u.Path = strings.Join([]string{strings.TrimRight(u.Path, "/"), m.uuid}, "/")
+				catalogConfig.URL = u.String()
+				config["catalogs"][catalogName] = catalogConfig
+			}
+		}
+	}
 	m.config = config["catalogs"]
 
 	return nil

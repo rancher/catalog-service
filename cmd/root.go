@@ -13,6 +13,7 @@ import (
 	"github.com/rancher/catalog-service/manager"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/service"
+	"github.com/rancher/catalog-service/tracking"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -123,7 +124,7 @@ func run(cmd *cobra.Command, args []string) {
 		db.AutoMigrate(&model.VersionLabelModel{})
 	}
 
-	m := manager.NewManager(cacheRoot, configFile, validateOnly, db)
+	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, tracking.LoadRancherUUID())
 	if validateOnly {
 		if err := m.RefreshAll(true); err != nil {
 			log.Fatalf("Failed to validate catalog: %v", err)
