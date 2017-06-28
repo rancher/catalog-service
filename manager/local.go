@@ -83,12 +83,14 @@ func (m *Manager) prepareGitRepoPath(catalog model.Catalog, update bool, catalog
 		}
 	} else {
 		if update {
-			if err = git.Update(repoPath, branch); err != nil {
-				// Ignore error unless running in strict mode
-				if m.strict {
-					return "", "", catalogType, err
+			if git.RemoteShaChanged(catalog.URL, catalog.Branch, catalog.Commit) {
+				if err = git.Update(repoPath, branch); err != nil {
+					// Ignore error unless running in strict mode
+					if m.strict {
+						return "", "", catalogType, err
+					}
+					log.Errorf("Failed to update existing repo cache: %v", err)
 				}
-				log.Errorf("Failed to update existing repo cache: %v", err)
 			}
 		}
 	}

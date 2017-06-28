@@ -146,7 +146,7 @@ def test_get_catalog_404(client):
 
 
 def test_catalog_commit(client):
-    latest_commit = '1b1fa1ba6c36516fa39ac3ff49d75072d9c98ffc'
+    latest_commit = '4ec17d4c057be16e01fecb599af16b2b9dda9065'
     url = 'http://localhost:8088/v1-catalog/catalogs/orig'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
