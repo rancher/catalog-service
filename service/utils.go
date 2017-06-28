@@ -138,9 +138,16 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 	}
 
 	var questions []model.Question
-	rancherCompose, ok := filesMap["rancher-compose.yml"]
-	if ok {
+	rancherCompose, rancherComposeExists := filesMap["rancher-compose.yml"]
+	templateVersion, templateVersionExists := filesMap["template-version.yml"]
+	if rancherComposeExists {
 		catalogInfo, err := parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
+		if err != nil {
+			return nil, err
+		}
+		questions = catalogInfo.Questions
+	} else if templateVersionExists {
+		catalogInfo, err := parse.CatalogInfoFromTemplateVersion([]byte(templateVersion))
 		if err != nil {
 			return nil, err
 		}
