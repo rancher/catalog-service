@@ -14,7 +14,6 @@ import (
 	"github.com/rancher/catalog-service/helm"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
-	"gopkg.in/yaml.v2"
 )
 
 func traverseFiles(repoPath, kind string, catalogType CatalogType) ([]model.Template, []error, error) {
@@ -193,15 +192,30 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 				}
 			}
 			var rancherCompose string
+			var templateVersion string
 			for _, file := range version.Files {
+
 				if file.Name == "rancher-compose.yml" {
 					rancherCompose = file.Contents
 				}
+
+				if file.Name == "template-version.yml" {
+					templateVersion = file.Contents
+				}
+
 			}
 			newVersion := version
-			if rancherCompose != "" {
+			if rancherCompose != "" || templateVersion != "" {
+
 				var err error
-				newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
+				if rancherCompose != "" {
+					newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
+				}
+
+				if templateVersion != "" {
+					newVersion, err = parse.CatalogInfoFromTemplateVersion([]byte(templateVersion))
+				}
+
 				if err != nil {
 					var id string
 					if template.Base == "" {
@@ -238,7 +252,7 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 
 func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath, filename string) error {
 	switch {
-	case filename == "config.yml":
+	case filename == "config.yml" || filename == "template.yml":
 		base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 		if !parsedCorrectly {
 			return nil
@@ -247,10 +261,12 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 		if err != nil {
 			return err
 		}
+
 		var template model.Template
-		if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
+		if template, err = parse.TemplateInfo(contents); err != nil {
 			return err
 		}
+
 		template.Base = base
 		template.FolderName = templateName
 
@@ -263,7 +279,7 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 			template.Versions = existingTemplate.Versions
 		}
 		templateIndex[key] = &template
-	case strings.HasPrefix(filename, "catalogIcon"):
+	case strings.HasPrefix(filename, "catalogIcon") || strings.HasPrefix(filename, "icon"):
 		base, templateName, parsedCorrectly := parse.TemplatePath(relativePath)
 		if !parsedCorrectly {
 			return nil

@@ -16,11 +16,11 @@ type Template struct {
 	Name           string `json:"name"`
 	IsSystem       string `json:"isSystem"`
 	Description    string `json:"description"`
-	DefaultVersion string `json:"defaultVersion" yaml:"version"`
+	DefaultVersion string `json:"defaultVersion" yaml:"default_version"`
 	Path           string `json:"path"`
 	Maintainer     string `json:"maintainer"`
 	License        string `json:"license"`
-	ProjectURL     string `json:"projectURL" yaml:"projectURL"`
+	ProjectURL     string `json:"projectURL" yaml:"project_url"`
 	UpgradeFrom    string `json:"upgradeFrom"`
 	FolderName     string `json:"folderName"`
 	Catalog        string `json:"catalogId"`
