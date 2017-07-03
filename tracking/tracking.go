@@ -17,9 +17,9 @@ const (
 
 func LoadRancherUUID() string {
 	client, err := rancher.NewRancherClient(&rancher.ClientOpts{
-		Url:       os.Getenv("CATTLE_URL"),
-		AccessKey: os.Getenv("CATTLE_ACCESS_KEY"),
-		SecretKey: os.Getenv("CATTLE_SECRET_KEY"),
+		Url:       os.Getenv("CATALOG_SERVICE_CATTLE_URL"),
+		AccessKey: os.Getenv("CATALOG_SERVICE_CATTLE_ACCESS_KEY"),
+		SecretKey: os.Getenv("CATALOG_SERVICE_CATTLE_SECRET_KEY"),
 		Timeout:   5 * time.Second,
 	})
 
