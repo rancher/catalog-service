@@ -44,7 +44,7 @@ func formatGitURL(url, branch string) string {
 	return ""
 }
 
-func RemoteShaChanged(url, branch, sha string) bool {
+func RemoteShaChanged(url, branch, sha, uuid string) bool {
 	formattedURL := formatGitURL(url, branch)
 
 	if formattedURL == "" {
@@ -55,13 +55,14 @@ func RemoteShaChanged(url, branch, sha string) bool {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			req.Header.Set("Accept", "application/vnd.github.chitauri-preview+sha")
 			req.Header.Set("If-None-Match", fmt.Sprintf("\"%s\"", sha))
-
+			req.Header.Set("X-Install-UUID", uuid)
 			return nil
 		},
 	}
 	req, _ := http.NewRequest("GET", formattedURL, nil)
 	req.Header.Set("Accept", "application/vnd.github.chitauri-preview+sha")
 	req.Header.Set("If-None-Match", fmt.Sprintf("\"%s\"", sha))
+	req.Header.Set("X-Install-UUID", uuid)
 	res, _ := client.Do(req)
 
 	if res.StatusCode == 304 {
