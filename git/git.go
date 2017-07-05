@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -27,21 +28,24 @@ func HeadCommit(path string) (string, error) {
 	return strings.Trim(string(output), "\n"), err
 }
 
-func formatGitURL(url, branch string) string {
-	splitURL := strings.Split(url, "/")
-
-	if strings.HasPrefix(url, "https://github.com") && len(splitURL) > 4 {
-		org := splitURL[3]
-		repo := strings.TrimSuffix(splitURL[4], ".git")
-
-		return fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", org, repo, branch)
-	} else if strings.HasPrefix(url, "https://git.rancher.io") && len(splitURL) > 3 {
-		repo := strings.TrimSuffix(splitURL[3], ".git")
-
-		return fmt.Sprintf("https://git.rancher.io/repos/%s/commits/%s", repo, branch)
+func formatGitURL(endpoint, branch string) string {
+	formattedURL := ""
+	if u, err := url.Parse(endpoint); err == nil {
+		pathParts := strings.Split(u.Path, "/")
+		switch strings.Split(u.Host, ":")[0] {
+		case "github.com":
+			if len(pathParts) >= 3 {
+				org := pathParts[1]
+				repo := strings.TrimSuffix(pathParts[2], ".git")
+				formattedURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", org, repo, branch)
+			}
+		case "git.rancher.io":
+			repo := strings.TrimSuffix(pathParts[1], ".git")
+			u.Path = fmt.Sprintf("/repos/%s/commits/%s", repo, branch)
+			formattedURL = u.String()
+		}
 	}
-
-	return ""
+	return formattedURL
 }
 
 func RemoteShaChanged(url, branch, sha, uuid string) bool {
