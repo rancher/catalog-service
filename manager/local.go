@@ -83,7 +83,7 @@ func (m *Manager) prepareGitRepoPath(catalog model.Catalog, update bool, catalog
 		}
 	} else {
 		if update {
-			if git.RemoteShaChanged(catalog.URL, catalog.Branch, catalog.Commit) {
+			if git.RemoteShaChanged(catalog.URL, catalog.Branch, catalog.Commit, m.uuid) {
 				if err = git.Update(repoPath, branch); err != nil {
 					// Ignore error unless running in strict mode
 					if m.strict {
