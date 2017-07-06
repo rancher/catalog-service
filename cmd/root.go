@@ -26,6 +26,7 @@ var (
 	validateOnly    bool
 	sqlite          bool
 	migrateDb       bool
+	track           bool
 	debug           bool
 	version         bool
 	VERSION         string
@@ -47,6 +48,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&validateOnly, "validate", false, "")
 	RootCmd.PersistentFlags().BoolVar(&sqlite, "sqlite", false, "")
 	RootCmd.PersistentFlags().BoolVar(&migrateDb, "migrate-db", false, "")
+	RootCmd.PersistentFlags().BoolVar(&track, "track", true, "")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "")
 	RootCmd.PersistentFlags().BoolVarP(&version, "version", "v", false, "")
 
@@ -124,7 +126,16 @@ func run(cmd *cobra.Command, args []string) {
 		db.AutoMigrate(&model.VersionLabelModel{})
 	}
 
-	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, tracking.LoadRancherUUID())
+	uuid := ""
+	if track {
+		var err error
+		uuid, err = tracking.LoadRancherUUID()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, uuid)
 	if validateOnly {
 		if err := m.RefreshAll(true); err != nil {
 			log.Fatalf("Failed to validate catalog: %v", err)
