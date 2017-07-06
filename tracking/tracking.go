@@ -16,7 +16,7 @@ const (
 
 var logger = log.WithFields(log.Fields{"service": "catalog"})
 
-func LoadRancherUUID() string {
+func LoadRancherUUID() (string, error) {
 	uuid := ""
 
 	client, err := rancher.NewRancherClient(&rancher.ClientOpts{
@@ -27,7 +27,7 @@ func LoadRancherUUID() string {
 	})
 
 	if err != nil {
-		logger.WithField("error", err.Error()).Fatal("Failed to create client")
+		return uuid, err
 	}
 
 	var setting *rancher.Setting
@@ -47,5 +47,5 @@ func LoadRancherUUID() string {
 		logger.WithField("uuid", setting.Value).Warn("Malformed")
 	}
 
-	return uuid
+	return uuid, nil
 }

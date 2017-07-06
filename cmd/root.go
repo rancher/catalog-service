@@ -128,7 +128,11 @@ func run(cmd *cobra.Command, args []string) {
 
 	uuid := ""
 	if track {
-		uuid = tracking.LoadRancherUUID()
+		var err error
+		uuid, err = tracking.LoadRancherUUID()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, uuid)
