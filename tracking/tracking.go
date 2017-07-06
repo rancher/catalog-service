@@ -2,7 +2,6 @@ package tracking
 
 import (
 	"os"
-	"regexp"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,10 +11,11 @@ import (
 const (
 	uuidSetting = "install.uuid"
 	uuidPattern = "[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}"
-	nilUUID     = "00000000-0000-0000-0000-000000000000"
 )
 
-func LoadRancherUUID() string {
+var logger = log.WithFields(log.Fields{"service": "catalog"})
+
+func LoadRancherUUID() (string, error) {
 	client, err := rancher.NewRancherClient(&rancher.ClientOpts{
 		Url:       os.Getenv("CATALOG_SERVICE_CATTLE_URL"),
 		AccessKey: os.Getenv("CATALOG_SERVICE_CATTLE_ACCESS_KEY"),
@@ -23,23 +23,23 @@ func LoadRancherUUID() string {
 		Timeout:   5 * time.Second,
 	})
 
+	uuid := ""
 	if err != nil {
-		log.Warnf("Error creating client: %v", err)
-		return nilUUID
+		return uuid, err
 	}
 
 	var setting *rancher.Setting
-	setting, err = client.Setting.ById(uuidSetting)
-	if err != nil {
-		log.Warnf("Error retrieving setting: %v", err)
-		return nilUUID
+	if setting, err = client.Setting.ById(uuidSetting); err != nil {
+		logger.WithFields(log.Fields{
+			"setting": "install.uuid",
+			"error":   err.Error(),
+		}).Warn("Failed to read setting")
+
+	} else if setting.Value == "" {
+		logger.WithField("setting", "install.uuid").Warn("Setting is empty")
+	} else {
+		uuid = setting.Value
 	}
 
-	matched := regexp.MustCompile(uuidPattern).MatchString(setting.Value)
-	if !matched {
-		log.Warnf("Malformed UUID: %s", setting.Value)
-		return nilUUID
-	}
-
-	return setting.Value
+	return uuid, nil
 }

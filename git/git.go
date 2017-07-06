@@ -59,14 +59,18 @@ func RemoteShaChanged(url, branch, sha, uuid string) bool {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			req.Header.Set("Accept", "application/vnd.github.chitauri-preview+sha")
 			req.Header.Set("If-None-Match", fmt.Sprintf("\"%s\"", sha))
-			req.Header.Set("X-Install-UUID", uuid)
+			if uuid != "" {
+				req.Header.Set("X-Install-Uuid", uuid)
+			}
 			return nil
 		},
 	}
 	req, _ := http.NewRequest("GET", formattedURL, nil)
 	req.Header.Set("Accept", "application/vnd.github.chitauri-preview+sha")
 	req.Header.Set("If-None-Match", fmt.Sprintf("\"%s\"", sha))
-	req.Header.Set("X-Install-UUID", uuid)
+	if uuid != "" {
+		req.Header.Set("X-Install-Uuid", uuid)
+	}
 	res, _ := client.Do(req)
 
 	if res.StatusCode == 304 {
