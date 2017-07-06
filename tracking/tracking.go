@@ -2,7 +2,6 @@ package tracking
 
 import (
 	"os"
-	"regexp"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -17,8 +16,6 @@ const (
 var logger = log.WithFields(log.Fields{"service": "catalog"})
 
 func LoadRancherUUID() (string, error) {
-	uuid := ""
-
 	client, err := rancher.NewRancherClient(&rancher.ClientOpts{
 		Url:       os.Getenv("CATALOG_SERVICE_CATTLE_URL"),
 		AccessKey: os.Getenv("CATALOG_SERVICE_CATTLE_ACCESS_KEY"),
@@ -26,6 +23,7 @@ func LoadRancherUUID() (string, error) {
 		Timeout:   5 * time.Second,
 	})
 
+	uuid := ""
 	if err != nil {
 		return uuid, err
 	}
@@ -39,12 +37,8 @@ func LoadRancherUUID() (string, error) {
 
 	} else if setting.Value == "" {
 		logger.WithField("setting", "install.uuid").Warn("Setting is empty")
-
-	} else if matched := regexp.MustCompile(uuidPattern).MatchString(setting.Value); matched {
-		uuid = setting.Value
-
 	} else {
-		logger.WithField("uuid", setting.Value).Warn("Malformed")
+		uuid = setting.Value
 	}
 
 	return uuid, nil
