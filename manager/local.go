@@ -91,7 +91,7 @@ func (m *Manager) prepareGitRepoPath(catalog model.Catalog, update bool, catalog
 					}
 					log.Errorf("Failed to update existing repo cache: %v", err)
 				}
-				log.Infof("catalog-service: updated catalog '%v'", catalog.Name)
+				log.Debugf("catalog-service: updated catalog '%v'", catalog.Name)
 			}
 		}
 	}
