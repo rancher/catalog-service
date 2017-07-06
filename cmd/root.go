@@ -127,7 +127,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	uuid := ""
-	if track {
+	if track && !validateOnly {
 		var err error
 		uuid, err = tracking.LoadRancherUUID()
 		if err != nil {
