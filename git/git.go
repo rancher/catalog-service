@@ -78,6 +78,7 @@ func RemoteShaChanged(url, branch, sha, uuid string) bool {
 	if err != nil {
 		return true
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode == 304 {
 		return false
