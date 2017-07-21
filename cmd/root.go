@@ -131,7 +131,7 @@ func run(cmd *cobra.Command, args []string) {
 		var err error
 		uuid, err = tracking.LoadRancherUUID()
 		if err != nil {
-			log.Fatal(err)
+			log.Warnf("Couldn't load install uuid: %v", err)
 		}
 	}
 
