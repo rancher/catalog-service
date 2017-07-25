@@ -11,7 +11,7 @@ import (
 	"github.com/rancher/catalog-service/parse"
 	"github.com/rancher/catalog-service/utils"
 	"github.com/rancher/go-rancher/api"
-	"github.com/rancher/go-rancher/client"
+	"github.com/rancher/go-rancher/v2"
 )
 
 const (
