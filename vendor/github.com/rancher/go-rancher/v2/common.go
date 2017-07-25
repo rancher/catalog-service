@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,8 +24,9 @@ const (
 )
 
 var (
-	debug  = false
-	dialer = &websocket.Dialer{}
+	debug             = false
+	dialer            = &websocket.Dialer{}
+	privateFieldRegex = regexp.MustCompile("^[[:lower:]]")
 )
 
 type ClientOpts struct {
@@ -129,10 +131,10 @@ func appendFilters(urlString string, filters map[string]interface{}) (string, er
 	return u.String(), nil
 }
 
-func setupRancherBaseClient(rancherClient *RancherBaseClientImpl, opts *ClientOpts) error {
-	u, err := url.Parse(opts.Url)
+func NormalizeUrl(existingUrl string) (string, error) {
+	u, err := url.Parse(existingUrl)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if u.Path == "" || u.Path == "/" {
@@ -140,7 +142,16 @@ func setupRancherBaseClient(rancherClient *RancherBaseClientImpl, opts *ClientOp
 	} else if u.Path == "/v1" || strings.HasPrefix(u.Path, "/v1/") {
 		u.Path = strings.Replace(u.Path, "/v1", "/v2-beta", 1)
 	}
-	opts.Url = u.String()
+
+	return u.String(), nil
+}
+
+func setupRancherBaseClient(rancherClient *RancherBaseClientImpl, opts *ClientOpts) error {
+	var err error
+	opts.Url, err = NormalizeUrl(opts.Url)
+	if err != nil {
+		return err
+	}
 
 	if opts.Timeout == 0 {
 		opts.Timeout = time.Second * 10
@@ -251,7 +262,17 @@ func (rancherClient *RancherBaseClientImpl) doDelete(url string) error {
 }
 
 func (rancherClient *RancherBaseClientImpl) Websocket(url string, headers map[string][]string) (*websocket.Conn, *http.Response, error) {
-	return dialer.Dial(url, http.Header(headers))
+	httpHeaders := http.Header{}
+	for k, v := range httpHeaders {
+		httpHeaders[k] = v
+	}
+
+	if rancherClient.Opts != nil {
+		s := rancherClient.Opts.AccessKey + ":" + rancherClient.Opts.SecretKey
+		httpHeaders.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(s)))
+	}
+
+	return dialer.Dial(url, http.Header(httpHeaders))
 }
 
 func (rancherClient *RancherBaseClientImpl) doGet(url string, opts *ListOpts, respObject interface{}) error {
