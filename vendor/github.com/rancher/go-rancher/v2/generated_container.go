@@ -23,8 +23,6 @@ type Container struct {
 
 	CapDrop []string `json:"capDrop,omitempty" yaml:"cap_drop,omitempty"`
 
-	Cgroup string `json:"cgroup,omitempty" yaml:"cgroup,omitempty"`
-
 	CgroupParent string `json:"cgroupParent,omitempty" yaml:"cgroup_parent,omitempty"`
 
 	Command []string `json:"command,omitempty" yaml:"command,omitempty"`
@@ -105,6 +103,8 @@ type Container struct {
 
 	ImageUuid string `json:"imageUuid,omitempty" yaml:"image_uuid,omitempty"`
 
+	RunInit bool `json:"runInit,omitempty" yaml:"runInit,omitempty"`
+
 	InstanceLinks map[string]interface{} `json:"instanceLinks,omitempty" yaml:"instance_links,omitempty"`
 
 	InstanceTriggeredStop string `json:"instanceTriggeredStop,omitempty" yaml:"instance_triggered_stop,omitempty"`
@@ -141,6 +141,8 @@ type Container struct {
 
 	MilliCpuReservation int64 `json:"milliCpuReservation,omitempty" yaml:"milli_cpu_reservation,omitempty"`
 
+	Mounts []MountEntry `json:"mounts,omitempty" yaml:"mounts,omitempty"`
+
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	NativeContainer bool `json:"nativeContainer,omitempty" yaml:"native_container,omitempty"`
@@ -165,6 +167,8 @@ type Container struct {
 
 	PrimaryIpAddress string `json:"primaryIpAddress,omitempty" yaml:"primary_ip_address,omitempty"`
 
+	PrimaryNetworkId string `json:"primaryNetworkId,omitempty" yaml:"primary_network_id,omitempty"`
+
 	Privileged bool `json:"privileged,omitempty" yaml:"privileged,omitempty"`
 
 	PublishAllPorts bool `json:"publishAllPorts,omitempty" yaml:"publish_all_ports,omitempty"`
@@ -181,11 +185,17 @@ type Container struct {
 
 	RestartPolicy *RestartPolicy `json:"restartPolicy,omitempty" yaml:"restart_policy,omitempty"`
 
+	Secrets []SecretReference `json:"secrets,omitempty" yaml:"secrets,omitempty"`
+
 	SecurityOpt []string `json:"securityOpt,omitempty" yaml:"security_opt,omitempty"`
+
+	ServiceId string `json:"serviceId,omitempty" yaml:"service_id,omitempty"`
 
 	ServiceIds []string `json:"serviceIds,omitempty" yaml:"service_ids,omitempty"`
 
 	ShmSize int64 `json:"shmSize,omitempty" yaml:"shm_size,omitempty"`
+
+	StackId string `json:"stackId,omitempty" yaml:"stack_id,omitempty"`
 
 	StartCount int64 `json:"startCount,omitempty" yaml:"start_count,omitempty"`
 
@@ -218,6 +228,8 @@ type Container struct {
 	Ulimits []Ulimit `json:"ulimits,omitempty" yaml:"ulimits,omitempty"`
 
 	User string `json:"user,omitempty" yaml:"user,omitempty"`
+
+	UserPorts []string `json:"userPorts,omitempty" yaml:"user_ports,omitempty"`
 
 	UsernsMode string `json:"usernsMode,omitempty" yaml:"userns_mode,omitempty"`
 
@@ -272,8 +284,6 @@ type ContainerOperations interface {
 	ActionRemove(*Container) (*Instance, error)
 
 	ActionRestart(*Container) (*Instance, error)
-
-	ActionRestore(*Container) (*Instance, error)
 
 	ActionStart(*Container) (*Instance, error)
 
@@ -442,15 +452,6 @@ func (c *ContainerClient) ActionRestart(resource *Container) (*Instance, error) 
 	resp := &Instance{}
 
 	err := c.rancherClient.doAction(CONTAINER_TYPE, "restart", &resource.Resource, nil, resp)
-
-	return resp, err
-}
-
-func (c *ContainerClient) ActionRestore(resource *Container) (*Instance, error) {
-
-	resp := &Instance{}
-
-	err := c.rancherClient.doAction(CONTAINER_TYPE, "restore", &resource.Resource, nil, resp)
 
 	return resp, err
 }
