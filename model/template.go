@@ -6,7 +6,7 @@ import (
 
 	"github.com/docker/libcompose/utils"
 	"github.com/jinzhu/gorm"
-	"github.com/rancher/go-rancher/client"
+	"github.com/rancher/go-rancher/v2"
 )
 
 type Template struct {
