@@ -33,6 +33,8 @@ type Volume struct {
 
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
+	Mounts []MountEntry `json:"mounts,omitempty" yaml:"mounts,omitempty"`
+
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	RemoveTime string `json:"removeTime,omitempty" yaml:"remove_time,omitempty"`
@@ -86,8 +88,6 @@ type VolumeOperations interface {
 	ActionPurge(*Volume) (*Volume, error)
 
 	ActionRemove(*Volume) (*Volume, error)
-
-	ActionRestore(*Volume) (*Volume, error)
 
 	ActionRestorefrombackup(*Volume, *RestoreFromBackupInput) (*Volume, error)
 
@@ -189,15 +189,6 @@ func (c *VolumeClient) ActionRemove(resource *Volume) (*Volume, error) {
 	resp := &Volume{}
 
 	err := c.rancherClient.doAction(VOLUME_TYPE, "remove", &resource.Resource, nil, resp)
-
-	return resp, err
-}
-
-func (c *VolumeClient) ActionRestore(resource *Volume) (*Volume, error) {
-
-	resp := &Volume{}
-
-	err := c.rancherClient.doAction(VOLUME_TYPE, "restore", &resource.Resource, nil, resp)
 
 	return resp, err
 }
