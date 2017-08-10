@@ -106,22 +106,34 @@ def client():
 
 def test_catalog_list(client):
     catalogs = client.list_catalog()
-    assert len(catalogs) == 2
+    assert len(catalogs) == 5
 
     for catalog in catalogs:
         if catalog.name == 'orig':
             assert catalog.url == 'https://github.com/rancher/test-catalog'
         elif catalog.name == 'updated':
             assert catalog.url == '/tmp/test-catalog'
+        elif catalog.name == 'a' or catalog.name == 'b' or catalog.name == 'c':
+            assert catalog.url == '/tmp/test-catalog'
         else:
             assert False
+
+
+def test_catalog_list_order(client):
+    for i in range(0, 9):
+        catalogs = client.list_catalog()
+        assert catalogs[0].name == 'a'
+        assert catalogs[1].name == 'b'
+        assert catalogs[2].name == 'c'
+        assert catalogs[3].name == 'orig'
+        assert catalogs[4].name == 'updated'
 
 
 def test_get_catalogs(client):
     url = 'http://localhost:8088/v1-catalog/catalogs'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
-    resp = response.json()['data'][0]
+    resp = response.json()['data'][3]
     assert resp['name'] == 'orig'
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
     assert resp['links']['self'] == 'http://localhost:8088/' + \

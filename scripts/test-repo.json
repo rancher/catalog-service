@@ -5,6 +5,15 @@
     },
     "updated": {
       "url": "/tmp/test-catalog"
+    },
+    "a": {
+      "url": "/tmp/test-catalog"
+    },
+    "b": {
+      "url": "/tmp/test-catalog"
+    },
+    "c": {
+      "url": "/tmp/test-catalog"
     }
   }
 }
