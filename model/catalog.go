@@ -1,6 +1,8 @@
 package model
 
 import (
+	"sort"
+
 	"github.com/jinzhu/gorm"
 	"github.com/rancher/go-rancher/v2"
 )
@@ -67,9 +69,16 @@ func LookupCatalogs(db *gorm.DB, environmentId string) []Catalog {
 		// global catalogs are added through API
 		//catalogs = append(catalogs, catalogModel.Catalog)
 	}
+	catalogNames := []string{}
 
-	for _, catalog := range catalogMap {
-		catalogs = append(catalogs, catalog)
+	for catalogName, _ := range catalogMap {
+		catalogNames = append(catalogNames, catalogName)
+	}
+
+	sort.Strings(catalogNames)
+
+	for _, catalog := range catalogNames {
+		catalogs = append(catalogs, catalogMap[catalog])
 	}
 
 	return catalogs
