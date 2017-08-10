@@ -453,6 +453,15 @@ def test_upgrade_links(client):
     assert upgradeLinks is not None
     assert len(upgradeLinks) == 10
 
+    url = 'http://localhost:8088/v1-catalog/templates/' + \
+        'orig:test-upgrade-links:12'
+    response = requests.get(url, headers=DEFAULT_HEADERS)
+    assert response.status_code == 200
+    resp = response.json()
+    upgradeLinks = resp['upgradeVersionLinks']
+    assert upgradeLinks is not None
+    assert len(upgradeLinks) == 1
+
     url = 'http://localhost:8088/v1-catalog/templates/orig:many-versions:2' + \
         '?rancherVersion=v1.0.1'
     response = requests.get(url, headers=DEFAULT_HEADERS)

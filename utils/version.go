@@ -27,8 +27,12 @@ func formatVersion(v, rng string) (string, string) {
 	rng = strings.TrimLeft(rng, "v")
 	rng = strings.Replace(rng, ">v", ">", -1)
 	rng = strings.Replace(rng, ">=v", ">=", -1)
+	rng = strings.Replace(rng, "=>v", ">=", -1)
+	rng = strings.Replace(rng, "=>", ">=", -1)
 	rng = strings.Replace(rng, "<v", "<", -1)
 	rng = strings.Replace(rng, "<=v", "<=", -1)
+	rng = strings.Replace(rng, "=<v", "<=", -1)
+	rng = strings.Replace(rng, "=<", "<=", -1)
 	rng = strings.Replace(rng, "=v", "=", -1)
 	rng = strings.Replace(rng, "!v", "!", -1)
 

@@ -192,12 +192,6 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 }
 
 func showUpgradeVersion(version, upgradeVersion model.Version, rancherVersion string) bool {
-	if !utils.VersionGreaterThan(upgradeVersion.Version, version.Version) {
-		return false
-	}
-	if !utils.VersionBetween(upgradeVersion.MinimumRancherVersion, rancherVersion, upgradeVersion.MaximumRancherVersion) {
-		return false
-	}
 	if upgradeVersion.UpgradeFrom != "" {
 		satisfiesRange, err := utils.VersionSatisfiesRange(version.Version, upgradeVersion.UpgradeFrom)
 		if err != nil {
@@ -205,5 +199,13 @@ func showUpgradeVersion(version, upgradeVersion model.Version, rancherVersion st
 		}
 		return satisfiesRange
 	}
+
+	if !utils.VersionGreaterThan(upgradeVersion.Version, version.Version) {
+		return false
+	}
+	if !utils.VersionBetween(upgradeVersion.MinimumRancherVersion, rancherVersion, upgradeVersion.MaximumRancherVersion) {
+		return false
+	}
+
 	return true
 }
