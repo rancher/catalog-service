@@ -71,7 +71,6 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	question.CollectionMethods = []string{}
 
 	templateVersion := schemas.AddType("templateVersion", model.TemplateVersionResource{})
-	templateVersion.CollectionMethods = []string{}
 	delete(templateVersion.ResourceFields, "readme")
 
 	templateVersionQuestions := templateVersion.ResourceFields["questions"]
