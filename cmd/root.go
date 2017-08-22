@@ -173,20 +173,19 @@ func formatDSN(user, password, address, dbname, params string) string {
 	return mysqlConfig.FormatDSN()
 }
 
-func refresh(m *manager.Manager, update bool) {
-	if err := m.RefreshAll(update); err != nil {
-		log.Errorf("Failed to perform catalog refresh: %v", err)
-	}
-}
-
 func autoRefresh(m *manager.Manager, refreshInterval int) {
+	var r = func(m *manager.Manager, update bool) {
+		if err := m.RefreshAll(update); err != nil {
+			log.Errorf("Failed to perform catalog refresh: %v", err)
+		}
+	}
 	// Refresh once without trying to update sources in case internet access isn't available
-	refresh(m, false)
+	r(m, false)
 
-	refresh(m, true)
+	r(m, true)
 	// TODO: don't want to have refresh running twice at the same time
 	for range time.Tick(time.Duration(refreshInterval) * time.Second) {
 		log.Debugf("Performing automatic refresh of all catalogs (interval %d seconds)", refreshInterval)
-		go refresh(m, true)
+		go r(m, true)
 	}
 }
