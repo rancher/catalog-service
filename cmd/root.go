@@ -176,7 +176,14 @@ func formatDSN(user, password, address, dbname, params string) string {
 func autoRefresh(m *manager.Manager, refreshInterval int) {
 	var r = func(m *manager.Manager, update bool) {
 		if err := m.RefreshAll(update); err != nil {
-			log.Errorf("Failed to perform catalog refresh: %v", err)
+			if re, ok := err.(*manager.RepoRefreshError); ok && len(re.Errors) > 1 {
+				log.Errorf("Multiple errors encountered performing catalog refresh")
+				for _, e := range re.Errors {
+					log.Error(e)
+				}
+			} else {
+				log.Errorf("Failed to perform catalog refresh: %v", err)
+			}
 		}
 	}
 	// Refresh once without trying to update sources in case internet access isn't available
