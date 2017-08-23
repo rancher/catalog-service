@@ -1,12 +1,13 @@
 package manager
 
 import (
-	"errors"
 	"fmt"
-	"strings"
+	"net/http"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/rancher/catalog-service/model"
 )
 
@@ -23,15 +24,21 @@ type Manager struct {
 	strict     bool
 	db         *gorm.DB
 	uuid       string
+	httpClient http.Client
 }
 
 func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB, uuid string) *Manager {
+	client := http.Client{
+		Timeout: time.Second * 10,
+	}
+
 	return &Manager{
 		cacheRoot:  cacheRoot,
 		configFile: configFile,
 		strict:     strict,
 		db:         db,
 		uuid:       uuid,
+		httpClient: client,
 	}
 }
 
@@ -49,6 +56,14 @@ func (m *Manager) Refresh(environmentId string, update bool) error {
 	return m.refreshEnvironmentCatalogs(environmentId, update)
 }
 
+type RepoRefreshError struct {
+	Errors []error
+}
+
+func (e *RepoRefreshError) Error() string {
+	return fmt.Sprintf("%v", e.Errors)
+}
+
 func (m *Manager) refreshConfigCatalogs(update bool) error {
 	if err := m.readConfig(); err != nil {
 		return err
@@ -57,7 +72,7 @@ func (m *Manager) refreshConfigCatalogs(update bool) error {
 		return err
 	}
 
-	var refreshErrors []string
+	var refreshErrors []error
 	for name, config := range m.config {
 		catalog := model.Catalog{
 			Name:          name,
@@ -71,11 +86,11 @@ func (m *Manager) refreshConfigCatalogs(update bool) error {
 			catalog = existingCatalog
 		}
 		if err := m.refreshCatalog(catalog, update); err != nil {
-			refreshErrors = append(refreshErrors, fmt.Sprintf("%s: %v", catalog.Name, err))
+			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.URL))
 		}
 	}
 	if len(refreshErrors) > 0 {
-		return errors.New(strings.Join(refreshErrors, "\n"))
+		return &RepoRefreshError{Errors: refreshErrors}
 	}
 	return nil
 }
@@ -86,14 +101,14 @@ func (m *Manager) refreshEnvironmentCatalogs(environmentId string, update bool) 
 		return err
 	}
 
-	var refreshErrors []string
+	var refreshErrors []error
 	for _, catalog := range catalogs {
 		if err := m.refreshCatalog(catalog, update); err != nil {
-			refreshErrors = append(refreshErrors, fmt.Sprintf("%s: %v", catalog.Name, err))
+			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.URL))
 		}
 	}
 	if len(refreshErrors) > 0 {
-		return errors.New(strings.Join(refreshErrors, "\n"))
+		return &RepoRefreshError{Errors: refreshErrors}
 	}
 	return nil
 }
@@ -110,15 +125,16 @@ func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
 		return nil
 	}
 
-	templates, errors, err := traverseFiles(repoPath, catalog.Kind, catalogType)
+	templates, errs, err := traverseFiles(repoPath, catalog.Kind, catalogType)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Repo traversal failed")
 	}
-	if len(errors) != 0 {
+
+	if len(errs) != 0 {
 		if m.strict {
-			return fmt.Errorf("%v", errors)
+			return fmt.Errorf("%v", errs)
 		}
-		log.Errorf("Errors while parsing repo: %v", errors)
+		log.Errorf("Errors while parsing repo: %v", errs)
 	}
 
 	log.Debugf("Updating catalog %s", catalog.Name)
