@@ -121,8 +121,11 @@ def test_get_catalogs(client):
     url = 'http://localhost:8088/v1-catalog/catalogs'
     response = requests.get(url, headers=DEFAULT_HEADERS)
     assert response.status_code == 200
-    resp = response.json()['data'][0]
-    assert resp['name'] == 'orig'
+    catalogs = response.json()['data']
+    for c in catalogs:
+        if c['name'] == 'orig':
+            resp = c
+            break
     assert resp['url'] == 'https://github.com/rancher/test-catalog'
     assert resp['links']['self'] == 'http://localhost:8088/' + \
         'v1-catalog/catalogs/orig?projectId=' + DEFAULT_ENV
