@@ -191,29 +191,31 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 					readme = file.Contents
 				}
 			}
+
+			var compose string
 			var rancherCompose string
 			var templateVersion string
 			for _, file := range version.Files {
-
-				if file.Name == "rancher-compose.yml" {
+				switch file.Name {
+				case "template-version.yml":
+					templateVersion = file.Contents
+				case "compose.yml":
+					compose = file.Contents
+				case "rancher-compose.yml":
 					rancherCompose = file.Contents
 				}
-
-				if file.Name == "template-version.yml" {
-					templateVersion = file.Contents
-				}
-
 			}
 			newVersion := version
-			if rancherCompose != "" || templateVersion != "" {
-
+			if templateVersion != "" || compose != "" || rancherCompose != "" {
 				var err error
-				if rancherCompose != "" {
-					newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
-				}
-
 				if templateVersion != "" {
 					newVersion, err = parse.CatalogInfoFromTemplateVersion([]byte(templateVersion))
+				}
+				if compose != "" {
+					newVersion, err = parse.CatalogInfoFromCompose([]byte(compose))
+				}
+				if rancherCompose != "" {
+					newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
 				}
 
 				if err != nil {
