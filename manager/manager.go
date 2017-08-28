@@ -81,10 +81,12 @@ func (m *Manager) refreshConfigCatalogs(update bool) error {
 			EnvironmentId: "global",
 			Kind:          config.Kind,
 		}
+
 		existingCatalog, err := m.lookupCatalog("global", name)
 		if err == nil && existingCatalog.URL == catalog.URL && existingCatalog.Branch == catalog.Branch {
-			catalog = existingCatalog
+			catalog = existingCatalog.Catalog
 		}
+
 		if err := m.refreshCatalog(catalog, update); err != nil {
 			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.URL))
 		}
