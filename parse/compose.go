@@ -8,7 +8,6 @@ import (
 )
 
 func TemplateInfo(contents []byte) (model.Template, error) {
-
 	var data map[string]interface{}
 	if err := yaml.Unmarshal([]byte(contents), &data); err != nil {
 		return model.Template{}, err
@@ -30,11 +29,9 @@ func TemplateInfo(contents []byte) (model.Template, error) {
 	}
 
 	return template, nil
-
 }
 
 func CatalogInfoFromTemplateVersion(contents []byte) (model.Version, error) {
-
 	var template model.Version
 	if err := yaml.Unmarshal(contents, &template); err != nil {
 		return model.Version{}, err
@@ -74,4 +71,9 @@ func CatalogInfoFromRancherCompose(contents []byte) (model.Version, error) {
 	}
 
 	return model.Version{}, nil
+}
+
+func CatalogInfoFromCompose(contents []byte) (model.Version, error) {
+	contents = []byte(extractCatalogBlock(string(contents)))
+	return CatalogInfoFromRancherCompose(contents)
 }
