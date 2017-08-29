@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
@@ -87,6 +88,26 @@ func catalogResource(catalog model.Catalog, apiContext *api.ApiContext, envId st
 	}
 }
 
+func templateDefaultVersion(template model.Template, catalogName string, apiContext *api.ApiContext) (string, string) {
+	var defaultTemplateVersionId string
+	for _, version := range template.Versions {
+		if version.Version == template.DefaultVersion {
+			defaultTemplateVersionId = generateVersionId(catalogName, template, version)
+			selfLink := apiContext.UrlBuilder.ReferenceByIdLink("templates", defaultTemplateVersionId)
+			return selfLink, defaultTemplateVersionId
+		}
+	}
+
+	sort.Sort(model.Versions(template.Versions))
+	if len(template.Versions) != 0 {
+		defaultTemplateVersionId = generateVersionId(catalogName, template, template.Versions[len(template.Versions)-1])
+		selfLink := apiContext.UrlBuilder.ReferenceByIdLink("templates", defaultTemplateVersionId)
+		return selfLink, defaultTemplateVersionId
+	}
+
+	return "", ""
+}
+
 func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, rancherVersion string, envId string) *model.TemplateResource {
 	templateId := generateTemplateId(catalogName, template)
 
@@ -109,11 +130,9 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 		links["project"] = template.ProjectURL
 	}
 
-	var defaultTemplateVersionId string
-	for _, version := range template.Versions {
-		if version.Version == template.DefaultVersion {
-			defaultTemplateVersionId = generateVersionId(catalogName, template, version)
-		}
+	defaultVersion, defaultVersionId := templateDefaultVersion(template, catalogName, apiContext)
+	if defaultVersion != "" {
+		links["defaultVersion"] = defaultVersion
 	}
 
 	return &model.TemplateResource{
@@ -124,8 +143,20 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 		},
 		Template:                 template,
 		VersionLinks:             versionLinks,
-		DefaultTemplateVersionId: defaultTemplateVersionId,
+		DefaultTemplateVersionId: defaultVersionId,
 	}
+}
+
+func defaultUpgradeVersionLink(upgradeVersions []model.Version, catalogName string, template model.Template, apiContext *api.ApiContext) string {
+	sort.Sort(model.Versions(upgradeVersions))
+	if len(upgradeVersions) != 0 {
+		route := generateVersionId(catalogName, template, upgradeVersions[len(upgradeVersions)-1])
+		link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
+		defaultUpgradeVersionLink := URLEncoded(link)
+		return defaultUpgradeVersionLink
+	}
+
+	return ""
 }
 
 func versionResource(apiContext *api.ApiContext, catalogName string, template model.Template, version model.Version, rancherVersion string, envId string) (*model.TemplateVersionResource, error) {
@@ -169,11 +200,24 @@ func versionResource(apiContext *api.ApiContext, catalogName string, template mo
 	links["template"] = URLEncoded(apiContext.UrlBuilder.ReferenceByIdLink("template", templateId))
 
 	upgradeVersionLinks := map[string]string{}
+	upgradeVersions := []model.Version{}
 	for _, upgradeVersion := range template.Versions {
 		if showUpgradeVersion(version, upgradeVersion, rancherVersion) {
 			route := generateVersionId(catalogName, template, upgradeVersion)
 			link := apiContext.UrlBuilder.ReferenceByIdLink("template", route)
 			upgradeVersionLinks[upgradeVersion.Version] = URLEncoded(link)
+			upgradeVersions = append(upgradeVersions, upgradeVersion)
+
+			if template.DefaultVersion == upgradeVersion.Version {
+				links["defaultUpgradeVersion"] = URLEncoded(link)
+			}
+		}
+	}
+
+	if _, ok := links["defaultUpgradeVersion"]; !ok {
+		defaultUpgradeVersionLink := defaultUpgradeVersionLink(upgradeVersions, catalogName, template, apiContext)
+		if defaultUpgradeVersionLink != "" {
+			links["defaultUpgradeVersion"] = defaultUpgradeVersionLink
 		}
 	}
 
