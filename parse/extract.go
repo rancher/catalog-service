@@ -19,7 +19,7 @@ func extractCatalogBlock(contents string) string {
 		}
 
 		if inBlock {
-			if i == len(lines) - 1  {
+			if i == len(lines)-1 {
 				catalogBlock = append(catalogBlock, line)
 				return strings.Join(catalogBlock, "\n")
 			}
