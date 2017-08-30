@@ -12,7 +12,7 @@ PACKAGES=". $(find -name '*.go' | xargs -I{} dirname {} |  cut -f2 -d/ | sort -u
 [ "${ARCH}" == "amd64" ] && RACE=-race
 go test ${RACE} -cover -tags=test ${PACKAGES}
 
-./bin/rancher-catalog-service --sqlite --config scripts/test-repo.json -p 8088 --track=false &
+./bin/rancher-catalog-service-sqlite --sqlite --config scripts/test-repo.json -p 8088 --track=false &
 trap "kill $!" exit
 cd integration
 tox -e flake8,py27

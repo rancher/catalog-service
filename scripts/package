@@ -9,8 +9,9 @@ ARCH=${ARCH:?"ARCH not set"}
 SUFFIX=""
 [ "${ARCH}" != "amd64" ] && SUFFIX="_${ARCH}"
 
-mv bin/rancher-catalog-service{,-sqlite}
-TAGS=nosqlite CGO_ENABLED=0 ./scripts/build
+if [ ! -e bin/rancher-catalog-service ]; then
+    ./scripts/build
+fi
 
 mkdir -p dist/artifacts
 tar cvJf dist/artifacts/rancher-catalog-service${SUFFIX}.tar.xz -C ./bin .
