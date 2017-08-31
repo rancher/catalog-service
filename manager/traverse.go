@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/rancher/catalog-service/git"
 	"github.com/rancher/catalog-service/helm"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
@@ -198,8 +199,11 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 					rancherCompose = file.Contents
 				}
 			}
+
 			newVersion := version
+
 			if rancherCompose != "" {
+
 				var err error
 				newVersion, err = parse.CatalogInfoFromRancherCompose([]byte(rancherCompose))
 				if err != nil {
@@ -220,8 +224,9 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 				newVersion.Files = version.Files
 			}
 			newVersion.Readme = readme
-
+			newVersion.Commit = version.Commit
 			template.Versions[i] = newVersion
+
 		}
 		var filteredVersions []model.Version
 		for _, version := range template.Versions {
@@ -229,11 +234,17 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 				filteredVersions = append(filteredVersions, version)
 			}
 		}
+
 		template.Versions = filteredVersions
 		templates = append(templates, *template)
 	}
 
 	return templates, errors, nil
+}
+
+func fileDirPath(fullPath string) string {
+	fullPathSegments := strings.Split(fullPath, "/")
+	return strings.Join(fullPathSegments[0:len(fullPathSegments)-1], "/")
 }
 
 func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath, filename string) error {
@@ -250,6 +261,11 @@ func handleFile(templateIndex map[string]*model.Template, fullPath, relativePath
 		var template model.Template
 		if err = yaml.Unmarshal([]byte(contents), &template); err != nil {
 			return err
+		}
+
+		commit, err := git.LatestPathCommit(fileDirPath(fullPath))
+		if err == nil {
+			template.Commit = commit
 		}
 		template.Base = base
 		template.FolderName = templateName
@@ -336,6 +352,10 @@ func handleVersionFile(templateIndex map[string]*model.Template, fullPath, relat
 	if err == nil {
 		for i, version := range templateIndex[key].Versions {
 			if version.Revision != nil && *version.Revision == revision {
+				commit, err := git.LatestPathCommit(fileDirPath(fullPath))
+				if err == nil {
+					templateIndex[key].Versions[i].Commit = commit
+				}
 				templateIndex[key].Versions[i].Files = append(version.Files, file)
 				return nil
 			}
@@ -352,6 +372,10 @@ func handleVersionFile(templateIndex map[string]*model.Template, fullPath, relat
 	if err == nil {
 		for i, version := range templateIndex[key].Versions {
 			if version.Version == folderName {
+				commit, err := git.LatestPathCommit(fileDirPath(fullPath))
+				if err == nil {
+					templateIndex[key].Versions[i].Commit = commit
+				}
 				templateIndex[key].Versions[i].Files = append(version.Files, file)
 				return nil
 			}

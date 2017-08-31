@@ -26,6 +26,14 @@ func HeadCommit(path string) (string, error) {
 	return strings.Trim(string(output), "\n"), err
 }
 
+func LatestPathCommit(path string) (string, error) {
+	cmd := exec.Command("git", "-C", path, "log", "-1", "--oneline", "--format=format:%H")
+
+	output, err := cmd.Output()
+
+	return strings.Trim(string(output), "\n"), err
+}
+
 func IsValid(url string) bool {
 	err := runcmd("git", "ls-remote", url)
 	return (err == nil)

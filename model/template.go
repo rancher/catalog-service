@@ -28,6 +28,7 @@ type Template struct {
 	Icon           string `json:"icon"`
 	IconFilename   string `json:"iconFilename"`
 	Readme         string `json:"readme"`
+	Commit         string `json:"commit"`
 
 	Categories []string          `sql:"-" json:"categories"`
 	Labels     map[string]string `sql:"-" json:"labels"`

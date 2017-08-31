@@ -25,6 +25,7 @@ type Version struct {
 	MaximumRancherVersion string `json:"maximumRancherVersion" yaml:"maximum_rancher_version"`
 	UpgradeFrom           string `json:"upgradeFrom" yaml:"upgrade_from"`
 	Readme                string `json:"readme"`
+	Commit                string `json:"commit"`
 
 	Labels map[string]string `sql:"-" json:"labels"`
 
