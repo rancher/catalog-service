@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -21,13 +22,12 @@ type Manager struct {
 	cacheRoot  string
 	configFile string
 	config     map[string]CatalogConfig
-	strict     bool
 	db         *gorm.DB
 	uuid       string
 	httpClient http.Client
 }
 
-func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB, uuid string) *Manager {
+func NewManager(cacheRoot string, configFile string, db *gorm.DB, uuid string) *Manager {
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -35,7 +35,6 @@ func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB, u
 	return &Manager{
 		cacheRoot:  cacheRoot,
 		configFile: configFile,
-		strict:     strict,
 		db:         db,
 		uuid:       uuid,
 		httpClient: client,
@@ -130,11 +129,14 @@ func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
 		return errors.Wrap(err, "Repo traversal failed")
 	}
 
+	errMsg := []string{}
+	for _, e := range errs {
+		errMsg = append(errMsg, e.Error())
+	}
+
 	if len(errs) != 0 {
-		if m.strict {
-			return fmt.Errorf("%v", errs)
-		}
 		log.Errorf("Errors while parsing repo: %v", errs)
+		return fmt.Errorf("%v", strings.Join(errMsg, "\n"))
 	}
 
 	log.Debugf("Updating catalog %s", catalog.Name)

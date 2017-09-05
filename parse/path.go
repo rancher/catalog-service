@@ -1,6 +1,8 @@
 package parse
 
-import "strings"
+import (
+	"strings"
+)
 
 func TemplateURLPath(path string) (string, string, string, string, bool) {
 	pathSplit := strings.Split(path, ":")
@@ -44,6 +46,10 @@ func TemplateURLPath(path string) (string, string, string, string, bool) {
 func TemplatePath(path string) (string, string, bool) {
 	split := strings.Split(path, "/")
 	if len(split) < 2 {
+		return "", "", false
+	}
+
+	if split[0] == ".git" {
 		return "", "", false
 	}
 

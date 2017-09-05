@@ -135,7 +135,7 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, uuid)
+	m := manager.NewManager(cacheRoot, configFile, db, uuid)
 	if validateOnly {
 		if err := m.RefreshAll(true); err != nil {
 			log.Fatalf("Failed to validate catalog: %v", err)

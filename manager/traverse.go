@@ -185,16 +185,18 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 
 	templates := []model.Template{}
 	for _, template := range templateIndex {
+		if strings.ToLower(template.FolderName) == "" {
+			errors = append(errors, fmt.Errorf("All templates must include a config.yml file"))
+			continue
+		}
 		for i, version := range template.Versions {
 			var readme string
+			var rancherCompose string
 			for _, file := range version.Files {
 				if strings.ToLower(file.Name) == "readme.md" {
 					readme = file.Contents
 				}
-			}
-			var rancherCompose string
-			for _, file := range version.Files {
-				if file.Name == "rancher-compose.yml" {
+				if strings.ToLower(file.Name) == "rancher-compose.yml" {
 					rancherCompose = file.Contents
 				}
 			}
@@ -218,7 +220,10 @@ func traverseGitFiles(repoPath string) ([]model.Template, []error, error) {
 					newVersion.Version = version.Version
 				}
 				newVersion.Files = version.Files
+			} else if rancherCompose == "" {
+				errors = append(errors, fmt.Errorf("Missing rancher-compose.yml file for %s: %v", template.FolderName, i))
 			}
+
 			newVersion.Readme = readme
 
 			template.Versions[i] = newVersion
