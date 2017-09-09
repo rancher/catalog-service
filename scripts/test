@@ -14,5 +14,7 @@ go test ${RACE} -cover -tags=test ${PACKAGES}
 
 ./bin/rancher-catalog-service-sqlite --sqlite --config scripts/test-repo.json -p 8088 --track=false &
 trap "kill $!" exit
+# Wait until the rancher-catalog-service-sqlite is up and running
+until curl -so /dev/null http://localhost:8088/v1-catalog/schemas -X GET -H "Accept: application/json"; do sleep 1; done
 cd integration
 tox -e flake8,py27
