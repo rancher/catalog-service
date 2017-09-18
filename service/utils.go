@@ -88,13 +88,13 @@ func catalogResource(catalog model.Catalog, apiContext *api.ApiContext, envId st
 	}
 }
 
-func templateDefaultVersion(template model.Template, catalogName string, apiContext *api.ApiContext) (string, string) {
+func templateDefaultVersion(template model.Template, catalogName string, apiContext *api.ApiContext) (string, string, string) {
 	var defaultTemplateVersionId string
 	for _, version := range template.Versions {
 		if version.Version == template.DefaultVersion {
 			defaultTemplateVersionId = generateVersionId(catalogName, template, version)
 			selfLink := apiContext.UrlBuilder.ReferenceByIdLink("templates", defaultTemplateVersionId)
-			return selfLink, defaultTemplateVersionId
+			return selfLink, defaultTemplateVersionId, version.Version
 		}
 	}
 
@@ -102,10 +102,10 @@ func templateDefaultVersion(template model.Template, catalogName string, apiCont
 	if len(template.Versions) != 0 {
 		defaultTemplateVersionId = generateVersionId(catalogName, template, template.Versions[len(template.Versions)-1])
 		selfLink := apiContext.UrlBuilder.ReferenceByIdLink("templates", defaultTemplateVersionId)
-		return selfLink, defaultTemplateVersionId
+		return selfLink, defaultTemplateVersionId, template.Versions[len(template.Versions)-1].Version
 	}
 
-	return "", ""
+	return "", "", ""
 }
 
 func templateResource(apiContext *api.ApiContext, catalogName string, template model.Template, rancherVersion string, envId string) *model.TemplateResource {
@@ -130,10 +130,12 @@ func templateResource(apiContext *api.ApiContext, catalogName string, template m
 		links["project"] = template.ProjectURL
 	}
 
-	defaultVersion, defaultVersionId := templateDefaultVersion(template, catalogName, apiContext)
+	defaultVersion, defaultVersionId, version := templateDefaultVersion(template, catalogName, apiContext)
 	if defaultVersion != "" {
 		links["defaultVersion"] = defaultVersion
 	}
+
+	template.DefaultVersion = version
 
 	return &model.TemplateResource{
 		Resource: client.Resource{
