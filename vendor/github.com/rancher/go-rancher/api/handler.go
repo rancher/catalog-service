@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/rancher/go-rancher/client"
