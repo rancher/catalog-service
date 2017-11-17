@@ -1,9 +1,9 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/cmd"
 	_ "github.com/rancher/catalog-service/signals"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {

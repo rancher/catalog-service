@@ -10,40 +10,45 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/go-rancher/api"
+	catalogv1 "github.com/rancher/type/apis/catalog.cattle.io/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getCatalogs(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func getCatalogs(w http.ResponseWriter, r *http.Request, envID string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 
-	catalogs := model.LookupCatalogs(db, envId)
-
+	catalogList, err := catalogClient.List(metav1.ListOptions{})
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
 	resp := model.CatalogCollection{}
-	for _, catalog := range catalogs {
-
-		resp.Data = append(resp.Data, *catalogResource(catalog, apiContext, envId))
+	for _, catalog := range catalogList.Items {
+		resp.Data = append(resp.Data, *catalogResource(catalog, apiContext, envID))
 	}
 
 	apiContext.Write(&resp)
 	return 0, nil
 }
 
-func getCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func getCatalog(w http.ResponseWriter, r *http.Request, envID string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	vars := mux.Vars(r)
-	envId, err := getEnvironmentId(r)
+	envID, err := getEnvironmentId(r)
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
-
 	// TODO error checking
 	catalogName := vars["catalog"]
-	catalog := model.LookupCatalog(db, envId, catalogName)
-	if catalog == nil {
+	catalog, err := catalogClient.Get(catalogName, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
 		return http.StatusNotFound, errors.New("Catalog not found")
+	} else if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	apiContext.Write(catalogResource(*catalog, apiContext, envId))
+	apiContext.Write(catalogResource(*catalog, apiContext, envID))
 	return 0, nil
 }
 
@@ -54,61 +59,43 @@ type CatalogRequest struct {
 	Kind   string
 }
 
-func isDuplicateName(catalogModel *model.CatalogModel) bool {
-
-	catalogs := []model.CatalogModel{}
-	catalogsQuery := `
-	SELECT *
-	FROM catalog
-	WHERE (environment_id = "global" OR environment_id = ?)
-	AND name = ?`
-	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
-
-	if len(catalogs) > 0 {
-		return true
+func isDuplicateName(catalog *catalogv1.Catalog, catalogClient catalogv1.CatalogInterface) (bool, error) {
+	_, err := catalogClient.Get(catalog.Name, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-
-	return false
+	return true, nil
 }
 
-func isDuplicateEnvName(catalogModel *model.CatalogModel, oldCatalogName string) bool {
-
-	if oldCatalogName == catalogModel.Name {
-		return false
+func isDuplicateEnvName(catalog *catalogv1.Catalog, oldCatalogName string, catalogClient catalogv1.CatalogInterface) (bool, error) {
+	if oldCatalogName == catalog.Name {
+		return false, nil
 	}
 
-	catalogs := []model.CatalogModel{}
-	catalogsQuery := `
-	SELECT *
-	FROM catalog
-	WHERE (environment_id = ?)
-	AND name = ?`
-	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
-
-	if len(catalogs) > 0 {
-		return true
+	_, err := catalogClient.List(metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", model.ProjectLabel, catalog.Labels[model.ProjectLabel]),
+	})
+	if kerrors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-
-	return false
+	return true, nil
 }
 
-func isDuplicateGlobalName(catalogModel *model.CatalogModel) bool {
-	catalogs := []model.CatalogModel{}
-	catalogsQuery := `
-	SELECT *
-	FROM catalog
-	WHERE environment_id = "global"
-	AND name = ?`
-	db.Raw(catalogsQuery, catalogModel.EnvironmentId, catalogModel.Name).Find(&catalogs)
-
-	if len(catalogs) > 0 {
-		return true
+func isDuplicateGlobalName(catalog *catalogv1.Catalog, catalogClient catalogv1.CatalogInterface) (bool, error) {
+	_, err := catalogClient.Get(catalog.Name, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-
-	return false
+	return true, nil
 }
 
-func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func createCatalog(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	catalogModel, err := catalogModelFromRequest(r, envId)
@@ -119,41 +106,36 @@ func createCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 	if catalogModel.Name == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'name'")
 	}
-	if catalogModel.URL == "" {
+	if catalogModel.Spec.URL == "" {
 		return http.StatusBadRequest, errors.New("Missing field 'url'")
 	}
 
-	if isDuplicateName(catalogModel) {
+	if exist, err := isDuplicateName(&catalogModel.Catalog, catalogClient); err == nil && exist {
 		return http.StatusUnprocessableEntity, fmt.Errorf("Catalog name %s already exists", catalogModel.Name)
+	} else if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	if err := db.Create(catalogModel).Error; err != nil {
-		return http.StatusBadRequest, err
+	catalog, err := catalogClient.Create(&catalogModel.Catalog)
+	if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext, ""))
+	apiContext.Write(catalogResource(*catalog, apiContext, ""))
 	return 0, nil
 }
 
-func catalogExists(catalogModel *model.CatalogModel, envId string) bool {
-	query := `
-	SELECT *
-	FROM catalog
-	WHERE name = ?
-	AND environment_id = ?`
-
-	catalog := []model.CatalogModel{}
-
-	db.Raw(query, catalogModel.Name, envId).Find(&catalog)
-
-	if len(catalog) > 0 {
-		return true
+func catalogExists(catalog *catalogv1.Catalog, catalogClient catalogv1.CatalogInterface) (bool, error) {
+	_, err := catalogClient.Get(catalog.Name, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-
-	return false
+	return true, nil
 }
 
-func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func updateCatalog(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	catalogModel, err := catalogModelFromRequest(r, envId)
@@ -165,29 +147,40 @@ func updateCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 	oldCatalogName := vars["catalog"]
 
 	oldCatalog := model.CatalogModel{
-		Catalog: model.Catalog{
-			Name:          oldCatalogName,
-			EnvironmentId: envId,
+		Catalog: catalogv1.Catalog{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: oldCatalogName,
+				Labels: map[string]string{
+					model.ProjectLabel: envId,
+				},
+			},
 		},
 	}
 
-	if isDuplicateGlobalName(catalogModel) {
+	if exist, err := isDuplicateGlobalName(&catalogModel.Catalog, catalogClient); err == nil && exist {
 		return http.StatusUnprocessableEntity, fmt.Errorf("Catalog name %s already exists", catalogModel.Name)
+	} else if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	if isDuplicateEnvName(catalogModel, oldCatalogName) {
+	if exist, err := isDuplicateEnvName(&catalogModel.Catalog, oldCatalogName, catalogClient); err == nil && exist {
 		return http.StatusUnprocessableEntity, fmt.Errorf("Catalog name %s already exists", catalogModel.Name)
+	} else if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	if !catalogExists(&oldCatalog, envId) {
+	if exist, err := catalogExists(&oldCatalog.Catalog, catalogClient); err == nil && !exist {
 		return http.StatusNotFound, errors.New("Catalog not found")
+	} else if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	if err := db.Model(&model.CatalogModel{}).Where(&oldCatalog).Update(catalogModel).Error; err != nil {
-		return http.StatusBadRequest, err
+	catalog, err := catalogClient.Update(&catalogModel.Catalog)
+	if err != nil {
+		return http.StatusInternalServerError, err
 	}
 
-	apiContext.Write(catalogResource(catalogModel.Catalog, apiContext, ""))
+	apiContext.Write(catalogResource(*catalog, apiContext, ""))
 	return 0, nil
 }
 
@@ -202,18 +195,32 @@ func catalogModelFromRequest(r *http.Request, envId string) (*model.CatalogModel
 		return nil, err
 	}
 
+	name := catalogRequest.Name
+	if envId != "global" {
+		name = envId + "-" + name
+	}
 	return &model.CatalogModel{
-		Catalog: model.Catalog{
-			EnvironmentId: envId,
-			Name:          catalogRequest.Name,
-			URL:           catalogRequest.URL,
-			Branch:        catalogRequest.Branch,
-			Kind:          catalogRequest.Kind,
+		Catalog: catalogv1.Catalog{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "catalog.cattle.io/v1",
+				Kind:       "Catalog",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					model.ProjectLabel: envId,
+				},
+			},
+			Spec: catalogv1.CatalogSpec{
+				URL:         catalogRequest.URL,
+				Branch:      catalogRequest.Branch,
+				CatalogKind: catalogRequest.Kind,
+			},
 		},
 	}, nil
 }
 
-func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	vars := mux.Vars(r)
 
 	name, ok := vars["catalog"]
@@ -221,13 +228,15 @@ func deleteCatalog(w http.ResponseWriter, r *http.Request, envId string) (int, e
 		return http.StatusBadRequest, errors.New("Missing paramater catalog")
 	}
 
-	model.DeleteCatalog(db, envId, name)
+	if err := catalogClient.Delete(name, &metav1.DeleteOptions{}); err != nil {
+		return http.StatusInternalServerError, err
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 	return 0, nil
 }
 
-func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func getCatalogTemplates(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 

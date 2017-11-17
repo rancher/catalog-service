@@ -7,12 +7,13 @@ import (
 	"sort"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
 	"github.com/rancher/catalog-service/utils"
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/v2"
+	catalogv1 "github.com/rancher/type/apis/catalog.cattle.io/v1"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -71,7 +72,7 @@ func generateTemplateId(catalogName string, template model.Template) string {
 	return fmt.Sprintf("%s:%s*%s", catalogName, template.Base, template.FolderName)
 }
 
-func catalogResource(catalog model.Catalog, apiContext *api.ApiContext, envId string) *model.CatalogResource {
+func catalogResource(catalog catalogv1.Catalog, apiContext *api.ApiContext, envId string) *model.CatalogResource {
 	selfLink := apiContext.UrlBuilder.ReferenceByIdLink("catalogs", catalog.Name)
 	projectID := envId
 	if projectID != "" {
@@ -84,8 +85,19 @@ func catalogResource(catalog model.Catalog, apiContext *api.ApiContext, envId st
 			Type:  "catalog",
 			Links: map[string]string{"self": selfLink},
 		},
-		Catalog: catalog,
+		Catalog: convert(catalog),
 	}
+}
+
+func convert(c catalogv1.Catalog) model.Catalog {
+	catalog := model.Catalog{}
+	catalog.Name = c.Name
+	catalog.Kind = c.Spec.CatalogKind
+	catalog.URL = c.Spec.URL
+	catalog.Branch = c.Spec.Branch
+	catalog.Commit = c.Spec.Commit
+	catalog.Type = c.Spec.Type
+	return catalog
 }
 
 func templateDefaultVersion(template model.Template, catalogName string, apiContext *api.ApiContext) (string, string, string) {

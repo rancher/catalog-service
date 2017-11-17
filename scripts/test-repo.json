@@ -1,10 +1,1 @@
-{
-  "catalogs": {
-    "orig": {
-      "url": "https://github.com/rancher/test-catalog"
-    },
-    "updated": {
-      "url": "/tmp/test-catalog"
-    }
-  }
-}
+{"catalogs":{"community123":{"url":"https://git.rancher.io/community-catalog.git","branch":"master"},"library":{"url":"https://github.com/rancher/rancher-catalog.git","branch":"master"}}}

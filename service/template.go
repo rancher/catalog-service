@@ -10,51 +10,43 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	catalogClient "github.com/rancher/catalog-service/client"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/parse"
 	"github.com/rancher/go-rancher/api"
+	catalogv1 "github.com/rancher/type/apis/catalog.cattle.io/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Removes template that belongs to a duplicate catalog
 func removeDuplicateCatalogTemplate(templates []model.Template, envId string) []model.Template {
-
-	catalogIds := []uint{}
-	templateMap := make(map[uint][]model.Template)
+	catalogNames := []string{}
+	templateMap := make(map[string][]model.Template)
 	for _, template := range templates {
-
-		if _, exists := templateMap[template.CatalogId]; !exists {
-			templateMap[template.CatalogId] = []model.Template{}
+		if _, exists := templateMap[template.CatalogName]; !exists {
+			templateMap[template.CatalogName] = []model.Template{}
 		}
 
-		templateMap[template.CatalogId] = append(templateMap[template.CatalogId], template)
-		catalogIds = append(catalogIds, template.CatalogId)
+		templateMap[template.CatalogName] = append(templateMap[template.CatalogName], template)
+		catalogNames = append(catalogNames, template.CatalogName)
 	}
 
-	query := `
-	SELECT *
-	FROM catalog
-	WHERE catalog.id IN (?)`
-	catalogs := []model.CatalogModel{}
-	db.Raw(query, catalogIds).Find(&catalogs)
-
-	// make sure to check for envID
-	catalogMap := make(map[string]uint)
-	duplicateCatalogMap := make(map[string]uint)
-	for _, catalog := range catalogs {
-		_, exist := catalogMap[catalog.Name]
-		if exist && catalog.EnvironmentId == "global" {
-			duplicateCatalogMap[catalog.Name] = catalogMap[catalog.Name]
-			catalogMap[catalog.Name] = catalog.ID
-		} else if exist && catalog.EnvironmentId != "global" {
-			duplicateCatalogMap[catalog.Name] = catalog.ID
-		} else {
-			catalogMap[catalog.Name] = catalog.ID
+	nameSet := map[string]struct{}{}
+	for _, name := range catalogNames {
+		nameSet[name] = struct{}{}
+	}
+	notExistingNames := []string{}
+	for name := range nameSet {
+		_, err := catalogClient.CatalogClient.Get(name, metav1.GetOptions{})
+		if err != nil {
+			notExistingNames = append(notExistingNames, name)
+			continue
 		}
 	}
 
-	for _, catalogId := range duplicateCatalogMap {
-		if _, exist := templateMap[catalogId]; exist {
-			delete(templateMap, catalogId)
+	for _, catalogName := range notExistingNames {
+		if _, exist := templateMap[catalogName]; exist {
+			delete(templateMap, catalogName)
 		}
 	}
 
@@ -67,7 +59,7 @@ func removeDuplicateCatalogTemplate(templates []model.Template, envId string) []
 
 }
 
-func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func getTemplates(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 
 	catalog := r.URL.Query().Get("catalogId")
@@ -105,7 +97,7 @@ func getTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, er
 	return 0, nil
 }
 
-func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func getTemplate(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	apiContext := api.GetApiContext(r)
 	vars := mux.Vars(r)
 
@@ -169,7 +161,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request, envId string) (int, err
 	return 0, nil
 }
 
-func refreshTemplates(w http.ResponseWriter, r *http.Request, envId string) (int, error) {
+func refreshTemplates(w http.ResponseWriter, r *http.Request, envId string, catalogClient catalogv1.CatalogInterface) (int, error) {
 	if err := m.Refresh(envId, true); err != nil {
 		return http.StatusInternalServerError, err
 	}

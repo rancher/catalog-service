@@ -5,10 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/rancher/catalog-service/model"
+	catalogv1 "github.com/rancher/type/apis/catalog.cattle.io/v1"
+	log "github.com/sirupsen/logrus"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -18,28 +21,40 @@ const (
 )
 
 type Manager struct {
-	cacheRoot  string
-	configFile string
-	config     map[string]CatalogConfig
-	strict     bool
-	db         *gorm.DB
-	uuid       string
-	httpClient http.Client
+	cacheRoot     string
+	config        map[string]CatalogConfig
+	strict        bool
+	db            *gorm.DB
+	uuid          string
+	httpClient    http.Client
+	catalogClient catalogv1.CatalogInterface
 }
 
-func NewManager(cacheRoot string, configFile string, strict bool, db *gorm.DB, uuid string) *Manager {
+func NewManager(cacheRoot string, strict bool, db *gorm.DB, uuid string, catalogClient catalogv1.CatalogInterface) *Manager {
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
 
 	return &Manager{
-		cacheRoot:  cacheRoot,
-		configFile: configFile,
-		strict:     strict,
-		db:         db,
-		uuid:       uuid,
-		httpClient: client,
+		cacheRoot:     cacheRoot,
+		strict:        strict,
+		db:            db,
+		uuid:          uuid,
+		httpClient:    client,
+		catalogClient: catalogClient,
 	}
+}
+
+func (m *Manager) HandleCatalog(key string, catalog *catalogv1.Catalog) error {
+	_, err := m.catalogClient.Get(key, metav1.GetOptions{})
+	if err == nil {
+		log.Debugf("refreshing catalog %s by controller", key)
+		return m.refreshCatalog(*catalog, true)
+	} else if !kerrors.IsNotFound(err) {
+		return err
+	}
+	delete(m.config, key)
+	return nil
 }
 
 func (m *Manager) RefreshAll(update bool) error {
@@ -65,28 +80,45 @@ func (e *RepoRefreshError) Error() string {
 }
 
 func (m *Manager) refreshConfigCatalogs(update bool) error {
-	if err := m.readConfig(); err != nil {
+	catalogList, err := m.catalogClient.List(metav1.ListOptions{})
+	if err != nil {
 		return err
 	}
-	if err := m.removeCatalogsNotInConfig(); err != nil {
-		return err
+	catalogConfig := map[string]CatalogConfig{}
+	for _, catalog := range catalogList.Items {
+		catalogConfig[catalog.Name] = CatalogConfig{
+			URL:    catalog.Spec.URL,
+			Branch: catalog.Spec.Branch,
+			Kind:   catalog.Spec.CatalogKind,
+		}
 	}
+	m.config = catalogConfig
 
 	var refreshErrors []error
 	for name, config := range m.config {
-		catalog := model.Catalog{
-			Name:          name,
-			URL:           config.URL,
-			Branch:        config.Branch,
-			EnvironmentId: "global",
-			Kind:          config.Kind,
+		catalog := catalogv1.Catalog{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					model.ProjectLabel: "global",
+				},
+			},
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "catalog.cattle.io/v1",
+				Kind:       "Catalog",
+			},
+			Spec: catalogv1.CatalogSpec{
+				URL:         config.URL,
+				Branch:      config.Branch,
+				CatalogKind: config.Kind,
+			},
 		}
 		existingCatalog, err := m.lookupCatalog("global", name)
-		if err == nil && existingCatalog.URL == catalog.URL && existingCatalog.Branch == catalog.Branch {
+		if err == nil && existingCatalog.Spec.URL == catalog.Spec.URL && existingCatalog.Spec.Branch == catalog.Spec.Branch {
 			catalog = existingCatalog
 		}
 		if err := m.refreshCatalog(catalog, update); err != nil {
-			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.URL))
+			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.Spec.URL))
 		}
 	}
 	if len(refreshErrors) > 0 {
@@ -104,7 +136,7 @@ func (m *Manager) refreshEnvironmentCatalogs(environmentId string, update bool) 
 	var refreshErrors []error
 	for _, catalog := range catalogs {
 		if err := m.refreshCatalog(catalog, update); err != nil {
-			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.URL))
+			refreshErrors = append(refreshErrors, errors.Wrapf(err, "Catalog refresh failed for %v (%v)", catalog.Name, catalog.Spec.URL))
 		}
 	}
 	if len(refreshErrors) > 0 {
@@ -113,19 +145,19 @@ func (m *Manager) refreshEnvironmentCatalogs(environmentId string, update bool) 
 	return nil
 }
 
-func (m *Manager) refreshCatalog(catalog model.Catalog, update bool) error {
+func (m *Manager) refreshCatalog(catalog catalogv1.Catalog, update bool) error {
 	repoPath, commit, catalogType, err := m.prepareRepoPath(catalog, update)
 	if err != nil {
 		return err
 	}
 
 	// Catalog is already up to date
-	if commit == catalog.Commit {
+	if commit == catalog.Spec.Commit {
 		log.Debugf("Catalog %s is already up to date", catalog.Name)
 		return nil
 	}
 
-	templates, errs, err := traverseFiles(repoPath, catalog.Kind, catalogType)
+	templates, errs, err := traverseFiles(repoPath, catalog.Spec.CatalogKind, catalogType)
 	if err != nil {
 		return errors.Wrap(err, "Repo traversal failed")
 	}

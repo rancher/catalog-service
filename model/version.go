@@ -10,11 +10,10 @@ import (
 
 const (
 	baseVersionQuery = `SELECT catalog_version.*
-FROM catalog_version, catalog_template, catalog
-WHERE (catalog.environment_id = ? OR catalog.environment_id = ?)
+FROM catalog_version, catalog_template
+WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
 AND catalog_version.template_id = catalog_template.id
-AND catalog_template.catalog_id = catalog.id
-AND catalog.name = ?
+AND catalog_template.catalog_name = ?
 AND catalog_template.base = ?
 AND catalog_template.folder_name = ?`
 )

@@ -1,22 +1,23 @@
 package manager
 
-import "github.com/rancher/catalog-service/model"
+import (
+	"fmt"
+	catalogClient "github.com/rancher/catalog-service/client"
+	"github.com/rancher/catalog-service/model"
+	catalogv1 "github.com/rancher/type/apis/catalog.cattle.io/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 func (m *Manager) removeCatalogsNotInConfig() error {
-	var catalogs []model.CatalogModel
-	m.db.Where(&model.CatalogModel{
-		Catalog: model.Catalog{
-			EnvironmentId: "global",
-		},
-	}).Find(&catalogs)
-	for _, catalog := range catalogs {
+	catalogClient := catalogClient.CatalogClient
+	catalogList, err := catalogClient.List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, catalog := range catalogList.Items {
 		if _, ok := m.config[catalog.Name]; !ok {
-			if err := m.db.Where(&model.CatalogModel{
-				Catalog: model.Catalog{
-					EnvironmentId: "global",
-					Name:          catalog.Name,
-				},
-			}).Delete(&model.CatalogModel{}).Error; err != nil {
+			if err := catalogClient.Delete(catalog.Name, &metav1.DeleteOptions{}); err != nil {
 				return err
 			}
 		}
@@ -24,65 +25,53 @@ func (m *Manager) removeCatalogsNotInConfig() error {
 	return nil
 }
 
-func (m *Manager) lookupCatalogs(environmentId string) ([]model.Catalog, error) {
-	var catalogModels []model.CatalogModel
-	if environmentId == "" {
-		if err := m.db.Find(&catalogModels).Error; err != nil {
-			return nil, err
-		}
-	} else {
-		if err := m.db.Where(&model.CatalogModel{
-			Catalog: model.Catalog{
-				EnvironmentId: environmentId,
-			},
-		}).Find(&catalogModels).Error; err != nil {
-			return nil, err
-		}
+func (m *Manager) lookupCatalogs(environmentId string) ([]catalogv1.Catalog, error) {
+	catalogList, err := catalogClient.CatalogClient.List(metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", model.ProjectLabel, environmentId),
+	})
+	if err != nil {
+		return nil, err
 	}
-	var catalogs []model.Catalog
-	for _, catalogModel := range catalogModels {
-		catalogs = append(catalogs, catalogModel.Catalog)
+	catalogs := []catalogv1.Catalog{}
+	for _, catalog := range catalogList.Items {
+		catalogs = append(catalogs, catalog)
 	}
 	return catalogs, nil
 }
 
-func (m *Manager) lookupCatalog(environmentId, name string) (model.Catalog, error) {
-	var catalogModel model.CatalogModel
-	if err := m.db.Where(&model.CatalogModel{
-		Catalog: model.Catalog{
-			EnvironmentId: environmentId,
-			Name:          name,
-		},
-	}).First(&catalogModel).Error; err != nil {
-		return model.Catalog{}, err
+func (m *Manager) lookupCatalog(environmentId, name string) (catalogv1.Catalog, error) {
+	catalog, err := catalogClient.CatalogClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return catalogv1.Catalog{}, err
 	}
-	return catalogModel.Catalog, nil
+	return *catalog, nil
 }
 
-func (m *Manager) updateDb(catalog model.Catalog, templates []model.Template, newCommit string) error {
+func (m *Manager) updateDb(catalog catalogv1.Catalog, templates []model.Template, newCommit string) error {
 	tx := m.db.Begin()
 
-	if err := tx.Where(&model.CatalogModel{
-		Catalog: model.Catalog{
-			Name:          catalog.Name,
-			EnvironmentId: catalog.EnvironmentId,
-		},
-	}).Delete(&model.CatalogModel{}).Error; err != nil {
-		tx.Rollback()
+	catalog.Spec.Commit = newCommit
+	_, err := catalogClient.CatalogClient.Update(&catalog)
+	if err != nil && !errors.IsNotFound(err) {
 		return err
+	} else if errors.IsNotFound(err) {
+		if _, err := catalogClient.CatalogClient.Create(&catalog); err != nil {
+			return err
+		}
 	}
 
-	var catalogModel model.CatalogModel
-	catalogModel.Catalog = catalog
-	catalogModel.Commit = newCommit
-	if err := tx.Create(&catalogModel).Error; err != nil {
+	query := `
+	DELETE FROM catalog_template
+	WHERE catalog_template.catalog_name = ?
+	`
+	if err := m.db.Exec(query, catalog.Name).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	for _, template := range templates {
-		template.CatalogId = catalogModel.ID
-		template.EnvironmentId = catalogModel.EnvironmentId
+		template.CatalogName = catalog.Name
+		template.EnvironmentId = catalog.Labels[model.ProjectLabel]
 		templateModel := model.TemplateModel{
 			Template: template,
 		}

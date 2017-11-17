@@ -1,9 +1,8 @@
 package parse
 
 import (
-	"github.com/docker/libcompose/config"
-	"github.com/docker/libcompose/utils"
 	"github.com/rancher/catalog-service/model"
+	"github.com/rancher/catalog-service/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -41,7 +40,7 @@ func CatalogInfoFromTemplateVersion(contents []byte) (model.Version, error) {
 }
 
 func CatalogInfoFromRancherCompose(contents []byte) (model.Version, error) {
-	cfg, err := config.CreateConfig(contents)
+	cfg, err := utils.CreateConfig(contents)
 	if err != nil {
 		return model.Version{}, err
 	}

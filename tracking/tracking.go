@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	rancher "github.com/rancher/go-rancher/v2"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

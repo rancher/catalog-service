@@ -6,14 +6,20 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+
+	"context"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/rancher/catalog-service/client"
+	catalogClient "github.com/rancher/catalog-service/client"
 	"github.com/rancher/catalog-service/manager"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/service"
 	"github.com/rancher/catalog-service/tracking"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -46,11 +52,11 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cacheRoot, "cache", "./cache", "")
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", "./repo.json", "")
 	RootCmd.PersistentFlags().BoolVar(&validateOnly, "validate", false, "")
-	RootCmd.PersistentFlags().BoolVar(&sqlite, "sqlite", false, "")
 	RootCmd.PersistentFlags().BoolVar(&migrateDb, "migrate-db", false, "")
 	RootCmd.PersistentFlags().BoolVar(&track, "track", true, "")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "")
 	RootCmd.PersistentFlags().BoolVarP(&version, "version", "v", false, "")
+	RootCmd.PersistentFlags().StringVar(&catalogClient.Config, "kubeconfig", "", "")
 
 	RootCmd.PersistentFlags().String("mysql-user", "", "")
 	viper.BindPFlag("mysql_user", RootCmd.PersistentFlags().Lookup("mysql-user"))
@@ -79,24 +85,15 @@ func run(cmd *cobra.Command, args []string) {
 
 	var db *gorm.DB
 	var err error
-	if sqlite {
-		db, err = gorm.Open("sqlite3", "local.db")
-		if err != nil {
-			log.Fatal(err)
-		}
-		db.Exec("PRAGMA foreign_keys = ON")
-		migrateDb = true
-	} else {
-		user := viper.GetString("mysql_user")
-		password := viper.GetString("mysql_password")
-		address := viper.GetString("mysql_address")
-		dbname := viper.GetString("mysql_dbname")
-		params := viper.GetString("mysql_params")
+	user := viper.GetString("mysql_user")
+	password := viper.GetString("mysql_password")
+	address := viper.GetString("mysql_address")
+	dbname := viper.GetString("mysql_dbname")
+	params := viper.GetString("mysql_params")
 
-		db, err = gorm.Open("mysql", formatDSN(user, password, address, dbname, params))
-		if err != nil {
-			log.Fatal(err)
-		}
+	db, err = gorm.Open("mysql", formatDSN(user, password, address, dbname, params))
+	if err != nil {
+		log.Fatal(err)
 	}
 	defer db.Close()
 
@@ -114,7 +111,6 @@ func run(cmd *cobra.Command, args []string) {
 
 	if migrateDb {
 		log.Info("Migrating DB")
-		db.AutoMigrate(&model.CatalogModel{})
 
 		db.AutoMigrate(&model.TemplateModel{})
 		db.AutoMigrate(&model.CategoryModel{})
@@ -135,7 +131,19 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, uuid)
+	catalogClient, err := client.NewCatalogClient(client.Config)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	client.CatalogClient = catalogClient
+	catalogController := client.CatalogClient.Controller()
+
+	m := manager.NewManager(cacheRoot, validateOnly, db, uuid, catalogClient)
+
+	// add controller
+	catalogController.AddHandler(m.HandleCatalog)
+	catalogController.Start(1, context.Background())
+
 	if validateOnly {
 		if err := m.RefreshAll(true); err != nil {
 			log.Fatalf("Failed to validate catalog: %v", err)

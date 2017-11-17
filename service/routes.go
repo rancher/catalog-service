@@ -5,10 +5,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	catalogClient "github.com/rancher/catalog-service/client"
 	"github.com/rancher/catalog-service/manager"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/go-rancher/api"
 	"github.com/rancher/go-rancher/client"
+	catalogv1 "github.com/rancher/type/apis/catalog.cattle.io/v1"
 )
 
 // MuxWrapper is a wrapper over the mux router that returns 503 until catalog is ready
@@ -28,7 +30,7 @@ var schemas *client.Schemas
 var m *manager.Manager
 var db *gorm.DB
 
-func handler(schemas *client.Schemas, envIdRequired bool, f func(http.ResponseWriter, *http.Request, string) (int, error)) http.Handler {
+func handler(schemas *client.Schemas, envIdRequired bool, f func(http.ResponseWriter, *http.Request, string, catalogv1.CatalogInterface) (int, error)) http.Handler {
 	return api.ApiHandler(schemas, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		envId, err := getEnvironmentId(r)
 		if err != nil {
@@ -38,7 +40,7 @@ func handler(schemas *client.Schemas, envIdRequired bool, f func(http.ResponseWr
 			}
 			envId = "global"
 		}
-		if code, err := f(w, r, envId); err != nil {
+		if code, err := f(w, r, envId, catalogClient.CatalogClient); err != nil {
 			ReturnHTTPError(w, r, code, err)
 			return
 		}
@@ -56,7 +58,7 @@ func NewRouter(manager *manager.Manager, gormDb *gorm.DB) *mux.Router {
 	apiVersion.CollectionMethods = []string{}
 
 	schemas.AddType("schema", client.Schema{})
-
+	// todo: add catalog schema
 	schemas.AddType("catalog", model.CatalogResource{})
 
 	template := schemas.AddType("template", model.TemplateResource{})

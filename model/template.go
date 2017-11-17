@@ -1,17 +1,14 @@
 package model
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/docker/libcompose/utils"
 	"github.com/jinzhu/gorm"
+	"github.com/rancher/catalog-service/utils"
 	"github.com/rancher/go-rancher/v2"
 )
 
 type Template struct {
 	EnvironmentId string `json:"environmentId"`
-	CatalogId     uint   `sql:"type:integer REFERENCES catalog(id) ON DELETE CASCADE"`
+	CatalogName   string `json:"catalogName"`
 
 	Name           string `json:"name"`
 	IsSystem       string `json:"isSystem"`
@@ -58,26 +55,20 @@ func LookupTemplate(db *gorm.DB, environmentId, catalog, folderName, base string
 	var templateModel TemplateModel
 	if err := db.Raw(`
 SELECT catalog_template.*
-FROM catalog_template, catalog
+FROM catalog_template
 WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
-AND catalog_template.catalog_id = catalog.id
-AND catalog.name = ?
+AND catalog_template.catalog_name = ?
 AND catalog_template.base = ?
 AND catalog_template.folder_name = ?
 `, environmentId, "global", catalog, base, folderName).Scan(&templateModel).Error; err == gorm.ErrRecordNotFound {
 		return nil
 	}
-
+	templateModel.CatalogName = catalog
 	fillInTemplate(db, &templateModel)
 	return &templateModel.Template
 }
 
 func fillInTemplate(db *gorm.DB, templateModel *TemplateModel) {
-	catalog := GetCatalog(db, templateModel.CatalogId)
-	if catalog != nil {
-		templateModel.Catalog = catalog.Name
-	}
-
 	templateModel.Categories = lookupTemplateCategories(db, templateModel.ID)
 	templateModel.Labels = lookupTemplateLabels(db, templateModel.ID)
 	templateModel.Versions = lookupVersions(db, templateModel.ID)
@@ -98,9 +89,7 @@ func templateCategoryMap(db *gorm.DB, templateIDList []int) map[int][]string {
 	var catagoryAndTemplateMap map[int][]string
 	catagoryAndTemplateMap = make(map[int][]string)
 	for _, catagoryAndTemplate := range catagoryAndTemplateList {
-
 		catagoryAndTemplateMap[catagoryAndTemplate.TemplateID] = append(catagoryAndTemplateMap[catagoryAndTemplate.TemplateID], catagoryAndTemplate.Name)
-
 	}
 
 	return catagoryAndTemplateMap
@@ -196,31 +185,6 @@ func templateVersionMap(db *gorm.DB, templateIDList []int) map[int][]Version {
 	return templateVersionMap
 }
 
-func catalogMap(db *gorm.DB, templateIDList []int) map[uint]string {
-	catalogQuery := `
-	SELECT catalog.*
-    FROM catalog
-    JOIN catalog_template ON (catalog.id = catalog_template.catalog_id)
-    WHERE catalog_template.id IN ( ? )`
-
-	var catalogs []CatalogModel
-
-	db.Raw(catalogQuery, templateIDList).Find(&catalogs)
-
-	// make map of catalog id to catalog name
-
-	catalogMap := map[uint]string{}
-
-	for _, catalog := range catalogs {
-
-		catalogMap[catalog.ID] = catalog.Name
-
-	}
-
-	return catalogMap
-
-}
-
 func LookupTemplates(db *gorm.DB, environmentId, catalog, templateBaseEq string, categories, categoriesNe []string) []Template {
 	var templateModels []TemplateModel
 
@@ -234,17 +198,16 @@ func LookupTemplates(db *gorm.DB, environmentId, catalog, templateBaseEq string,
 
 	query := `
 	SELECT catalog_template.*
-	FROM catalog_template, catalog
-	WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)
-	AND catalog_template.catalog_id = catalog.id`
+	FROM catalog_template
+	WHERE (catalog_template.environment_id = ? OR catalog_template.environment_id = ?)`
 
 	if catalog != "" {
 		query += `
-AND catalog.name = ?`
+		AND catalog_template.catalog_name = ?`
 	}
 	if templateBaseEq != "" {
 		query += `
-AND catalog_template.base = ?`
+		AND catalog_template.base = ?`
 	}
 
 	db.Raw(query, params...).Find(&templateModels)
@@ -257,14 +220,13 @@ AND catalog_template.base = ?`
 	templateCategoryMap := templateCategoryMap(db, templateIDList)
 	templateLabelMap := templateLabelMap(db, templateIDList)
 	templateVersionMap := templateVersionMap(db, templateIDList)
-	catalogMap := catalogMap(db, templateIDList)
 
 	var templates []Template
 	for _, templateModel := range templateModels {
 		templateModel.Categories = templateCategoryMap[int(templateModel.ID)]
 		templateModel.Labels = templateLabelMap[int(templateModel.ID)]
 		templateModel.Versions = templateVersionMap[int(templateModel.ID)]
-		templateModel.Catalog = catalogMap[templateModel.CatalogId]
+		templateModel.Catalog = templateModel.CatalogName
 
 		skip := false
 		for _, category := range categories {
@@ -284,12 +246,4 @@ AND catalog_template.base = ?`
 		}
 	}
 	return templates
-}
-
-func listQuery(size int) string {
-	var query string
-	for i := 0; i < size; i++ {
-		query += " ? ,"
-	}
-	return fmt.Sprintf("(%s)", strings.TrimSuffix(query, ","))
 }
