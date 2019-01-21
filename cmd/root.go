@@ -10,6 +10,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/pkg/errors"
 	"github.com/rancher/catalog-service/manager"
 	"github.com/rancher/catalog-service/model"
 	"github.com/rancher/catalog-service/service"
@@ -129,7 +130,7 @@ func run(cmd *cobra.Command, args []string) {
 	uuid := ""
 	if track && !validateOnly {
 		var err error
-		uuid, err = tracking.LoadRancherUUID()
+		uuid, err = retryWithBackoff()
 		if err != nil {
 			log.Warnf("Couldn't load install uuid: %v", err)
 		}
@@ -194,5 +195,23 @@ func autoRefresh(m *manager.Manager, refreshInterval int) {
 	for range time.Tick(time.Duration(refreshInterval) * time.Second) {
 		log.Debugf("Performing automatic refresh of all catalogs (interval %d seconds)", refreshInterval)
 		go r(m, true)
+	}
+}
+
+func retryWithBackoff() (string, error) {
+	interval := 250 * time.Millisecond
+	start := time.Now()
+	for {
+		if time.Now().Sub(start) > 2*time.Minute {
+			return "", errors.New("Timeout waiting for install UUID")
+		}
+		uuid, err := tracking.LoadRancherUUID()
+		if err != nil {
+			log.Warnf("Couldn't load install uuid: %v. Sleep %v and retry", err, interval)
+			time.Sleep(interval)
+			interval *= 2
+			continue
+		}
+		return uuid, err
 	}
 }
