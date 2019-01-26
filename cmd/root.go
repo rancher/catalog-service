@@ -134,6 +134,9 @@ func run(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Warnf("Couldn't load install uuid: %v", err)
 		}
+		if uuid != "" {
+			log.Infof("Fetch uuid %s successfully", uuid)
+		}
 	}
 
 	m := manager.NewManager(cacheRoot, configFile, validateOnly, db, uuid)
